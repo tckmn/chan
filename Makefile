@@ -8,7 +8,7 @@ bin/%.o: src/%.c
 
 bin/chan: $(patsubst src/%.c, bin/%.o, $(wildcard src/*.c))
 	@mkdir -p bin
-	gcc $^ -Wall -lncurses -o $@
+	gcc $^ -Wall -lncurses -lcurl -o $@
 
 clean:
 	rm -rf bin
