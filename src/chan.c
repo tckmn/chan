@@ -34,9 +34,11 @@ void chan_main_loop(struct chan *chan) {
 
     int ch;
     while ((ch = getch())) {
-        if (ch == 'q') break;
         if (chan->viewing) chan_comments_key(chan, ch);
-        else chan_submissions_key(chan, ch);
+        else {
+            if (ch == 'q') break;
+            chan_submissions_key(chan, ch);
+        }
     }
 }
 

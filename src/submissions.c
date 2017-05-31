@@ -96,6 +96,7 @@ void chan_redraw_submission(struct chan *chan, int i) {
 }
 
 void chan_draw_submissions(struct chan *chan) {
+    wclear(chan->main_win);
     for (int i = 0; i < chan->nsubmissions; ++i) {
         chan_redraw_submission(chan, i);
     }
