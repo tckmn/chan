@@ -2,7 +2,7 @@
 
 all: bin/chan
 
-bin/%.o: src/%.c
+bin/%.o: src/%.c $(wildcard src/*.h)
 	@mkdir -p bin
 	gcc -Wall -c $< -o $@
 
