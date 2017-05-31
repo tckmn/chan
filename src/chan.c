@@ -93,12 +93,20 @@ void chan_update_submissions(struct chan *chan) {
 
 void chan_draw_submissions(struct chan *chan) {
     for (int i = 0; i < chan->nsubmissions; ++i) {
+        wattrset(chan->main_win, i == chan->active_submission ? A_REVERSE : 0);
         struct submission submission = chan->submissions[i];
+        char *line = malloc(COLS + 1);
+        int written;
         if (submission.job) {
-            wprintw(chan->main_win, "    %3s     %s\n", submission.age, submission.title);
+            written = snprintf(line, COLS + 1, "    %3s     %s", submission.age, submission.title);
         } else {
-            wprintw(chan->main_win, "%3d %3s %3d %s\n", submission.score, submission.age, submission.comments, submission.title);
+            written = snprintf(line, COLS + 1, "%3d %3s %3d %s", submission.score, submission.age, submission.comments, submission.title);
         }
+        if (written < COLS) {
+            memset(line + written, ' ', COLS - written);
+            line[COLS] = '\0';
+        }
+        mvwaddstr(chan->main_win, i, 0, line);
     }
     wrefresh(chan->main_win);
 }
@@ -107,11 +115,13 @@ struct chan *chan_init() {
     struct chan *chan = malloc(sizeof *chan);
     chan->submissions = NULL;
     chan->nsubmissions = 0;
+    chan->active_submission = 0;
 
     // ncurses initialization
     initscr();
     raw();
     noecho();
+    curs_set(0);
 
     chan->main_win = newwin(LINES - 1, COLS, 0, 0);
     chan->status_win = newwin(1, COLS, LINES - 1, 0);

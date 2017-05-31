@@ -10,6 +10,7 @@ struct chan {
     WINDOW *status_win;
     struct submission *submissions;
     int nsubmissions;
+    int active_submission;
 };
 
 struct submission {
