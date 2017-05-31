@@ -6,6 +6,18 @@
 
 struct chan {
     CURL *curl;
+    struct submission *submissions;
+    int nsubmissions;
+};
+
+struct submission {
+    int id;
+    char *url;
+    char *title;
+    int score;
+    char *user;
+    int age;
+    int comments;
 };
 
 struct chan *chan_init();
