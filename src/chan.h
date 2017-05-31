@@ -6,6 +6,8 @@
 
 struct chan {
     CURL *curl;
+    WINDOW *main_win;
+    WINDOW *status_win;
     struct submission *submissions;
     int nsubmissions;
 };

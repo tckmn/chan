@@ -95,12 +95,12 @@ void chan_draw_submissions(struct chan *chan) {
     for (int i = 0; i < chan->nsubmissions; ++i) {
         struct submission submission = chan->submissions[i];
         if (submission.job) {
-            printw("    %2dh     %s\n", submission.age, submission.title);
+            wprintw(chan->main_win, "    %3s     %s\n", submission.age, submission.title);
         } else {
-            printw("%3d %2dh %3d %s\n", submission.score, submission.age, submission.comments, submission.title);
+            wprintw(chan->main_win, "%3d %3s %3d %s\n", submission.score, submission.age, submission.comments, submission.title);
         }
     }
-    refresh();
+    wrefresh(chan->main_win);
 }
 
 struct chan *chan_init() {
@@ -112,6 +112,10 @@ struct chan *chan_init() {
     initscr();
     raw();
     noecho();
+
+    chan->main_win = newwin(LINES - 1, COLS, 0, 0);
+    chan->status_win = newwin(1, COLS, LINES - 1, 0);
+    refresh();
 
     // curl initialization
     curl_global_init(CURL_GLOBAL_DEFAULT);
