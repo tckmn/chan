@@ -1,34 +1,8 @@
 #include "chan.h"
+#include "net.h"
 
 #include <stdlib.h>
 #include <string.h>
-
-struct membuf {
-    char *data;
-    size_t len;
-};
-
-size_t mem_callback(char *data, size_t size, size_t nmemb, void *userp) {
-    size_t len = size * nmemb;
-    struct membuf *buf = (struct membuf *) userp;
-    buf->data = realloc(buf->data, buf->len + len);
-    memcpy(buf->data + buf->len, data, len);
-    buf->len += len;
-    return len;
-}
-
-char *do_GET(struct chan *chan, const char *url) {
-    struct membuf buf;
-    buf.data = NULL;
-    buf.len = 0;
-
-    curl_easy_setopt(chan->curl, CURLOPT_URL, url);
-    curl_easy_setopt(chan->curl, CURLOPT_WRITEFUNCTION, mem_callback);
-    curl_easy_setopt(chan->curl, CURLOPT_WRITEDATA, &buf);
-    curl_easy_perform(chan->curl);
-
-    return buf.data;
-}
 
 // jump to the position immediately after the nth > character
 char *jumptag(char *str, int n) {
@@ -62,7 +36,7 @@ void chan_update_submissions(struct chan *chan) {
     chan->submissions = malloc(30 * sizeof *chan->submissions);
     chan->nsubmissions = 30;
 
-    char *data = do_GET(chan, "https://news.ycombinator.com/");
+    char *data = do_GET(chan->curl, "https://news.ycombinator.com/");
 
     struct submission *submission = chan->submissions;
     while ((data = strstr(data, "<tr class='athing'"))) {
