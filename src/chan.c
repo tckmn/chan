@@ -91,24 +91,50 @@ void chan_update_submissions(struct chan *chan) {
     }
 }
 
+// does NOT call wrefresh()!
+void chan_redraw_submission(struct chan *chan, int i) {
+    wattrset(chan->main_win, i == chan->active_submission ? A_REVERSE : 0);
+    struct submission submission = chan->submissions[i];
+    char *line = malloc(COLS + 1);
+    int written;
+    if (submission.job) {
+        written = snprintf(line, COLS + 1, "    %3s     %s", submission.age, submission.title);
+    } else {
+        written = snprintf(line, COLS + 1, "%3d %3s %3d %s", submission.score, submission.age, submission.comments, submission.title);
+    }
+    if (written < COLS) {
+        memset(line + written, ' ', COLS - written);
+        line[COLS] = '\0';
+    }
+    mvwaddstr(chan->main_win, i, 0, line);
+}
+
 void chan_draw_submissions(struct chan *chan) {
     for (int i = 0; i < chan->nsubmissions; ++i) {
-        wattrset(chan->main_win, i == chan->active_submission ? A_REVERSE : 0);
-        struct submission submission = chan->submissions[i];
-        char *line = malloc(COLS + 1);
-        int written;
-        if (submission.job) {
-            written = snprintf(line, COLS + 1, "    %3s     %s", submission.age, submission.title);
-        } else {
-            written = snprintf(line, COLS + 1, "%3d %3s %3d %s", submission.score, submission.age, submission.comments, submission.title);
-        }
-        if (written < COLS) {
-            memset(line + written, ' ', COLS - written);
-            line[COLS] = '\0';
-        }
-        mvwaddstr(chan->main_win, i, 0, line);
+        chan_redraw_submission(chan, i);
     }
     wrefresh(chan->main_win);
+}
+
+void chan_submissions_key(struct chan *chan, int ch) {
+    switch (ch) {
+        case 'j':
+            if (chan->active_submission < chan->nsubmissions - 1) {
+                ++chan->active_submission;
+            }
+            chan_redraw_submission(chan, chan->active_submission - 1);
+            chan_redraw_submission(chan, chan->active_submission);
+            wrefresh(chan->main_win);
+            break;
+        case 'k':
+            if (chan->active_submission > 0) {
+                --chan->active_submission;
+            }
+            chan_redraw_submission(chan, chan->active_submission + 1);
+            chan_redraw_submission(chan, chan->active_submission);
+            wrefresh(chan->main_win);
+            break;
+    }
 }
 
 struct chan *chan_init() {
@@ -137,7 +163,12 @@ struct chan *chan_init() {
 void chan_main_loop(struct chan *chan) {
     chan_update_submissions(chan);
     chan_draw_submissions(chan);
-    getch();
+
+    int ch;
+    while ((ch = getch())) {
+        if (ch == 'q') break;
+        chan_submissions_key(chan, ch);
+    }
 }
 
 void chan_destroy(struct chan *chan) {
