@@ -1,6 +1,6 @@
 ## chan
 
-***C*** ***Ha***cker ***N***ews client
+**C** **Ha**cker **N**ews client
 
 To compile and run:
 
