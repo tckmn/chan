@@ -11,6 +11,7 @@ struct chan {
     struct submission *submissions;
     int nsubmissions;
     int active_submission;
+    struct submission *viewing;
 };
 
 struct submission {
