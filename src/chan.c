@@ -74,10 +74,11 @@ void chan_update_submissions(struct chan *chan) {
 
             data = jumptag(data, 2);
         } else exit(123); // TODO something better
-        submission->age = atoi(data);
-        if (data[2 + (submission->age >= 10 ? 1 : 0)] == 'd') {
-            submission->age *= 24;
-        }
+        int age_len = strchr(data, ' ') - data + 1;
+        submission->age = malloc(age_len + 1);
+        strncpy(submission->age, data, age_len + 1);
+        submission->age[age_len - 1] = submission->age[age_len];
+        submission->age[age_len] = '\0';
 
         if (submission->job) {
             submission->comments = 0;

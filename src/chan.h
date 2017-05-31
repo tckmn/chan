@@ -17,7 +17,7 @@ struct submission {
     int job;
     int score;
     char *user;
-    int age;
+    char *age;
     int comments;
 };
 
