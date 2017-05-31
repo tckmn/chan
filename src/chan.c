@@ -30,16 +30,20 @@ char *do_GET(struct chan *chan, const char *url) {
     return buf.data;
 }
 
-// strstr, but returns the character immediately after the match
-// only use this if you know there will be a match!
-#define strstra(haystack,needle) (strstr((haystack),(needle))+strlen(needle))
-
 // jump to the position immediately after the nth > character
 char *jumptag(char *str, int n) {
     do {
         str = strchr(str, '>') + 1;
     } while (--n);
     return str;
+}
+
+// allocate space for and copy src to dest until reaching delimiter
+void copyuntil(char **dest, char *src, char delimiter) {
+    int len = strchr(src, delimiter) - src;
+    *dest = malloc(len + 1);
+    strncpy(*dest, src, len);
+    (*dest)[len] = '\0';
 }
 
 void chan_destroy_submissions(struct chan *chan) {
@@ -65,53 +69,47 @@ void chan_update_submissions(struct chan *chan) {
         data += strlen("<tr class='athing' id='");
         submission->id = atoi(data);
 
-        data = strstra(data, "<td class=\"title\"><a href=\"");
-        int url_len = strchr(data, '"') - data;
-        submission->url = malloc(url_len + 1);
-        strncpy(submission->url, data, url_len);
-        submission->url[url_len] = '\0';
+        data = strstr(data, "<td class=\"title\"><a href=\"") +
+            strlen("<td class=\"title\"><a href=\"");
+        copyuntil(&submission->url, data, '"');
 
         data = jumptag(data, 1);
-        int title_len = strchr(data, '<') - data;
-        submission->title = malloc(title_len + 1);
-        strncpy(submission->title, data, title_len);
-        submission->title[title_len] = '\0';
+        copyuntil(&submission->title, data, '<');
 
         // next line always starts with <span class="
         data = strchr(strchr(data, '\n'), '=') + 2;
         if (*data == 's') {
             // "score" i.e. it's a regular submission
+            submission->job = 0;
+
             data = jumptag(data, 1);
             submission->score = atoi(data);
 
             data = jumptag(data, 2);
-            int user_len = strchr(data, '<') - data;
-            submission->user = malloc(user_len + 1);
-            strncpy(submission->user, data, user_len);
-            submission->user[user_len] = '\0';
+            copyuntil(&submission->user, data, '<');
 
             data = jumptag(data, 3);
-            submission->age = atoi(data);
-            if (data[2 + (submission->age >= 10 ? 1 : 0)] == 'd') {
-                submission->age *= 24;
-            }
-
-            data = jumptag(data, 7);
-            submission->comments = atoi(data);
         } else if (*data == 'a') {
             // "age" i.e. it's one of those job posts
+            submission->job = 1;
+
             submission->score = 0;
+
             submission->user = malloc(1);
             submission->user[0] = '\0';
-            submission->comments = 0;
 
             data = jumptag(data, 2);
-            submission->age = atoi(data);
-            if (data[2 + (submission->age >= 10 ? 1 : 0)] == 'd') {
-                submission->age *= 24;
-            }
+        } else exit(123); // TODO something better
+        submission->age = atoi(data);
+        if (data[2 + (submission->age >= 10 ? 1 : 0)] == 'd') {
+            submission->age *= 24;
+        }
+
+        if (submission->job) {
+            submission->comments = 0;
         } else {
-            // TODO ??? what happened here
+            data = jumptag(data, 7);
+            submission->comments = atoi(data);
         }
 
         ++submission;
@@ -121,10 +119,10 @@ void chan_update_submissions(struct chan *chan) {
 void chan_draw_submissions(struct chan *chan) {
     for (int i = 0; i < chan->nsubmissions; ++i) {
         struct submission submission = chan->submissions[i];
-        if (submission.score) {
-            printw("%3d %2dh %3d %s\n", submission.score, submission.age, submission.comments, submission.title);
-        } else {
+        if (submission.job) {
             printw("    %2dh     %s\n", submission.age, submission.title);
+        } else {
+            printw("%3d %2dh %3d %s\n", submission.score, submission.age, submission.comments, submission.title);
         }
     }
     refresh();

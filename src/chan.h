@@ -14,6 +14,7 @@ struct submission {
     int id;
     char *url;
     char *title;
+    int job;
     int score;
     char *user;
     int age;
