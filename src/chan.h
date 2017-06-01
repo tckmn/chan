@@ -12,6 +12,8 @@ struct chan {
     int nsubmissions;
     int active_submission;
     struct submission *viewing;
+    char **view_buf;
+    int view_lines;
 };
 
 struct submission {
@@ -22,7 +24,17 @@ struct submission {
     int score;
     char *user;
     char *age;
-    int comments;
+    struct comment *comments;
+    int ncomments;
+};
+
+struct comment {
+    int id;
+    int depth;
+    char *user;
+    char *age;
+    int badness;
+    char *text;
 };
 
 struct chan *chan_init();

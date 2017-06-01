@@ -11,6 +11,7 @@ void chan_destroy_submissions(struct chan *chan) {
         free(chan->submissions[i].url);
         free(chan->submissions[i].title);
         free(chan->submissions[i].user);
+        free(chan->submissions[i].comments);
     }
     free(chan->submissions);
     chan->submissions = NULL;
@@ -60,17 +61,14 @@ void chan_update_submissions(struct chan *chan) {
 
             data = jumptag(data, 2);
         } else exit(123); // TODO something better
-        int age_len = strchr(data, ' ') - data + 1;
-        submission->age = malloc(age_len + 1);
-        strncpy(submission->age, data, age_len + 1);
-        submission->age[age_len - 1] = submission->age[age_len];
-        submission->age[age_len] = '\0';
+        copyage(&submission->age, data);
 
+        submission->comments = NULL;
         if (submission->job) {
-            submission->comments = 0;
+            submission->ncomments = 0;
         } else {
             data = jumptag(data, 7);
-            submission->comments = atoi(data);
+            submission->ncomments = atoi(data);
         }
 
         ++submission;
@@ -86,7 +84,7 @@ void chan_redraw_submission(struct chan *chan, int i) {
     if (submission.job) {
         written = snprintf(line, COLS + 1, "    %3s     %s", submission.age, submission.title);
     } else {
-        written = snprintf(line, COLS + 1, "%3d %3s %3d %s", submission.score, submission.age, submission.comments, submission.title);
+        written = snprintf(line, COLS + 1, "%3d %3s %3d %s", submission.score, submission.age, submission.ncomments, submission.title);
     }
     if (written < COLS) {
         memset(line + written, ' ', COLS - written);
