@@ -21,6 +21,8 @@ struct chan *chan_init() {
     noecho();
     curs_set(0);
     start_color();
+    init_pair(1, COLOR_RED, COLOR_BLACK);
+    init_pair(2, COLOR_GREEN, COLOR_BLACK);
 
     chan->main_win = newwin(chan->main_lines = LINES - 1,
             chan->main_cols = COLS, 0, 0);

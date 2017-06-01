@@ -109,22 +109,58 @@ void add_view_line(struct chan *chan, char *str, int len, int indent) {
     chan->view_buf_fmt[chan->view_lines - 1] = NULL;
 }
 
+void add_view_fmt(struct chan *chan, int type, int offset, int len) {
+    struct fmt *fmt = malloc(sizeof *fmt);
+    fmt->type = type;
+    fmt->offset = offset;
+    fmt->len = len;
+    fmt->next = NULL;
+
+    if (chan->view_buf_fmt[chan->view_lines - 1]) {
+        struct fmt *node = chan->view_buf_fmt[chan->view_lines - 1];
+        while (node->next) node = node->next;
+        node->next = fmt;
+    } else {
+        chan->view_buf_fmt[chan->view_lines - 1] = fmt;
+    }
+}
+
 void draw_view_line(struct chan *chan, int y, int lineno) {
-    mvwaddstr(chan->main_win, y, 0, chan->view_buf[lineno]);
+    char *line = chan->view_buf[lineno];
+    struct fmt *fmt = chan->view_buf_fmt[lineno];
+    int idx = 0;
+
+    while (fmt) {
+        wattrset(chan->main_win, 0);
+        mvwaddnstr(chan->main_win, y, idx, line + idx, fmt->offset - idx);
+        switch (fmt->type) {
+            case FMT_USER: wattrset(chan->main_win, A_BOLD | COLOR_PAIR(1)); break;
+            case FMT_AGE: wattrset(chan->main_win, A_BOLD | COLOR_PAIR(2)); break;
+        }
+        mvwaddnstr(chan->main_win, y, fmt->offset, line + fmt->offset, fmt->len);
+
+        idx = fmt->offset + fmt->len;
+        fmt = fmt->next;
+    }
+    wattrset(chan->main_win, 0);
+    mvwaddstr(chan->main_win, y, idx, line + idx);
 }
 
 void chan_draw_comments(struct chan *chan) {
     wclear(chan->main_win);
-    wattrset(chan->main_win, 0);
 
     // TODO unicode support
     for (int i = 0; i < chan->viewing->ncomments; ++i) {
         struct comment comment = chan->viewing->comments[i];
         int lastspace = 0, breakidx = 0, indent = comment.depth * 2,
             linewidth = chan->main_cols - indent;
+
         char *head = malloc(linewidth + 1);
         snprintf(head, linewidth + 1, "%s [%s]", comment.user, comment.age);
         add_view_line(chan, head, linewidth, indent);
+        add_view_fmt(chan, FMT_USER, indent, strlen(comment.user));
+        add_view_fmt(chan, FMT_AGE, indent + strlen(comment.user) + 2, strlen(comment.age));
+
         for (int j = 0; j < strlen(comment.text); ++j) {
             if (j - breakidx >= linewidth) {
                 if (lastspace) {
