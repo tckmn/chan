@@ -2,6 +2,7 @@
 #include "comments.h"
 #include "net.h"
 #include "parse.h"
+#include "sys.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -284,17 +285,9 @@ void chan_comments_key(struct chan *chan, int ch) {
                 wrefresh(chan->main_win);
             }
             break;
-        case 'o': {
-            // TODO do this in a better way
-            // TODO don't duplicate code from submissions.c
-            char *url = chan->viewing->url;
-            char *cmd = malloc(strlen(url) + 12);
-            sprintf(cmd, "xdg-open '%s'", url);
-            system(cmd);
-            free(url);
-            free(cmd);
+        case 'o':
+            urlopen(chan->viewing->url);
             break;
-        }
         case 'q':
             chan->viewing = NULL;
             for (int i = 0; i < chan->view_lines; ++i) {

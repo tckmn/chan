@@ -2,6 +2,7 @@
 #include "comments.h"
 #include "net.h"
 #include "parse.h"
+#include "sys.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -124,16 +125,9 @@ void chan_submissions_key(struct chan *chan, int ch) {
             chan_redraw_submission(chan, chan->active_submission);
             wrefresh(chan->main_win);
             break;
-        case 'o': {
-            // TODO do this in a better way
-            char *url = chan->submissions[chan->active_submission].url;
-            char *cmd = malloc(strlen(url) + 12);
-            sprintf(cmd, "xdg-open '%s'", url);
-            system(cmd);
-            free(url);
-            free(cmd);
+        case 'o':
+            urlopen(chan->submissions[chan->active_submission].url);
             break;
-        }
         case '\n':
             chan->viewing = chan->submissions + chan->active_submission;
             if (!chan->viewing->comments) chan_update_comments(chan);
