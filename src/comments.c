@@ -114,6 +114,9 @@ void chan_draw_comments(struct chan *chan) {
         struct comment comment = chan->viewing->comments[i];
         int lastspace = 0, breakidx = 0, indent = comment.depth * 2,
             linewidth = chan->main_cols - indent;
+        char *head = malloc(linewidth + 1);
+        snprintf(head, linewidth + 1, "%s [%s]", comment.user, comment.age);
+        add_view_line(chan, head, linewidth, indent);
         for (int j = 0; j < strlen(comment.text); ++j) {
             if (j - breakidx >= linewidth) {
                 if (lastspace) {
