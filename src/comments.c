@@ -238,12 +238,17 @@ void chan_draw_comments(struct chan *chan) {
 }
 
 void chan_comments_key(struct chan *chan, int ch) {
-    if (ch >= '0' && ch <= '9') {
+    if ((ch >= '0' && ch <= '9') || ch == '\x7f') {
         wclear(chan->status_win);
 
         int len = strlen(chan->view_urlnbuf);
-        chan->view_urlnbuf[len] = ch;
-        chan->view_urlnbuf[len+1] = '\0';
+        if (ch == '\x7f') {
+            // backspace
+            if (len) chan->view_urlnbuf[len-1] = '\0';
+        } else {
+            chan->view_urlnbuf[len] = ch;
+            chan->view_urlnbuf[len+1] = '\0';
+        }
 
         int urln = atoi(chan->view_urlnbuf);
         if (!urln || urln > chan->viewing->nurls) {
@@ -257,6 +262,11 @@ void chan_comments_key(struct chan *chan, int ch) {
         }
         wrefresh(chan->status_win);
     } else switch (ch) {
+        case '\x1b': // esc
+            chan->view_urlnbuf[0] = '\0';
+            wclear(chan->status_win);
+            wrefresh(chan->status_win);
+            break;
         case 'j':
             if (chan->view_scroll + chan->main_lines < chan->view_lines - 1) {
                 ++chan->view_scroll;
