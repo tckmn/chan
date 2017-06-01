@@ -7,6 +7,8 @@
 struct chan {
     CURL *curl;
     WINDOW *main_win;
+    int main_lines;
+    int main_cols;
     WINDOW *status_win;
     struct submission *submissions;
     int nsubmissions;
@@ -14,6 +16,7 @@ struct chan {
     struct submission *viewing;
     char **view_buf;
     int view_lines;
+    int view_scroll;
 };
 
 struct submission {

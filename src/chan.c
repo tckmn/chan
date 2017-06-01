@@ -12,6 +12,7 @@ struct chan *chan_init() {
     chan->viewing = NULL;
     chan->view_buf = NULL;
     chan->view_lines = 0;
+    chan->view_scroll = 0;
 
     // ncurses initialization
     initscr();
@@ -19,7 +20,8 @@ struct chan *chan_init() {
     noecho();
     curs_set(0);
 
-    chan->main_win = newwin(LINES - 1, COLS, 0, 0);
+    chan->main_win = newwin(chan->main_lines = LINES - 1,
+            chan->main_cols = COLS, 0, 0);
     scrollok(chan->main_win, TRUE);
     chan->status_win = newwin(1, COLS, LINES - 1, 0);
     refresh();

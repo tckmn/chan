@@ -110,7 +110,7 @@ void chan_draw_comments(struct chan *chan) {
     for (int i = 0; i < chan->viewing->ncomments; ++i) {
         struct comment comment = chan->viewing->comments[i];
         int lastspace = 0, breakidx = 0, indent = comment.depth * 2,
-            linewidth = COLS - indent;
+            linewidth = chan->main_cols - indent;
         for (int j = 0; j < strlen(comment.text); ++j) {
             if (j - breakidx >= linewidth) {
                 if (lastspace) {
@@ -133,7 +133,8 @@ void chan_draw_comments(struct chan *chan) {
         add_view_line(chan, "", 0, 0);
     }
 
-    for (int i = 0; i < chan->view_lines && i < LINES; ++i) {
+    chan->view_scroll = 0;
+    for (int i = 0; i < chan->view_lines && i < chan->main_lines; ++i) {
         mvwaddstr(chan->main_win, i, 0, chan->view_buf[i]);
     }
 
@@ -142,6 +143,24 @@ void chan_draw_comments(struct chan *chan) {
 
 void chan_comments_key(struct chan *chan, int ch) {
     switch (ch) {
+        case 'j':
+            if (chan->view_scroll + chan->main_lines < chan->view_lines) {
+                ++chan->view_scroll;
+                wscrl(chan->main_win, 1);
+                mvwaddstr(chan->main_win, chan->main_lines - 1, 0,
+                        chan->view_buf[chan->view_scroll + chan->main_lines]);
+                wrefresh(chan->main_win);
+            }
+            break;
+        case 'k':
+            if (chan->view_scroll > 0) {
+                --chan->view_scroll;
+                wscrl(chan->main_win, -1);
+                mvwaddstr(chan->main_win, 0, 0,
+                        chan->view_buf[chan->view_scroll]);
+                wrefresh(chan->main_win);
+            }
+            break;
         case 'o': {
             // TODO do this in a better way
             // TODO don't duplicate code from submissions.c
