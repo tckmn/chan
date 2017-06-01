@@ -107,7 +107,7 @@ void chan_draw_submissions(struct chan *chan) {
     wrefresh(chan->main_win);
 }
 
-void chan_submissions_key(struct chan *chan, int ch) {
+int chan_submissions_key(struct chan *chan, int ch) {
     switch (ch) {
         case 'j':
             if (chan->active_submission < chan->nsubmissions - 1) {
@@ -116,7 +116,7 @@ void chan_submissions_key(struct chan *chan, int ch) {
             chan_redraw_submission(chan, chan->active_submission - 1);
             chan_redraw_submission(chan, chan->active_submission);
             wrefresh(chan->main_win);
-            break;
+            return 1;
         case 'k':
             if (chan->active_submission > 0) {
                 --chan->active_submission;
@@ -124,14 +124,16 @@ void chan_submissions_key(struct chan *chan, int ch) {
             chan_redraw_submission(chan, chan->active_submission + 1);
             chan_redraw_submission(chan, chan->active_submission);
             wrefresh(chan->main_win);
-            break;
+            return 1;
         case 'o':
             urlopen(chan->submissions[chan->active_submission].url);
-            break;
+            return 1;
         case '\n':
             chan->viewing = chan->submissions + chan->active_submission;
             if (!chan->viewing->comments) chan_update_comments(chan);
             chan_draw_comments(chan);
-            break;
+            return 1;
+        default:
+            return 0;
     }
 }

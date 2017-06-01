@@ -6,6 +6,6 @@
 void chan_destroy_submissions(struct chan *chan);
 void chan_update_submissions(struct chan *chan);
 void chan_draw_submissions(struct chan *chan);
-void chan_submissions_key(struct chan *chan, int ch);
+int chan_submissions_key(struct chan *chan, int ch);
 
 #endif

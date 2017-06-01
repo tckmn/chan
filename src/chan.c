@@ -1,6 +1,7 @@
 #include "chan.h"
 #include "submissions.h"
 #include "comments.h"
+#include "login.h"
 
 #include <stdlib.h>
 
@@ -15,6 +16,8 @@ struct chan *chan_init() {
     chan->view_lines = 0;
     chan->view_scroll = 0;
     chan->view_urlnbuf[0] = '\0';
+    chan->username = NULL;
+    chan->password = NULL;
 
     // ncurses initialization
     initscr();
@@ -45,12 +48,20 @@ void chan_main_loop(struct chan *chan) {
 
     int ch;
     while ((ch = getch())) {
-        if (chan->viewing) chan_comments_key(chan, ch);
-        else {
-            if (ch == 'q') break;
-            chan_submissions_key(chan, ch);
+        int handled;
+        if (chan->username)     handled = chan_login_key(chan, ch);
+        else if (chan->viewing) handled = chan_comments_key(chan, ch);
+        else                    handled = chan_submissions_key(chan, ch);
+
+        // global keybinds
+        if (!handled) switch (ch) {
+            case 'l': chan_login_init(chan); break;
+            case 'q': goto finish;
         }
     }
+
+    // label to break out of the main loop
+    finish:;
 }
 
 void chan_destroy(struct chan *chan) {

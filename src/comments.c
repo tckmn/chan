@@ -238,7 +238,7 @@ void chan_draw_comments(struct chan *chan) {
     wrefresh(chan->main_win);
 }
 
-void chan_comments_key(struct chan *chan, int ch) {
+int chan_comments_key(struct chan *chan, int ch) {
     if ((ch >= '0' && ch <= '9') || ch == '\x7f') {
         wclear(chan->status_win);
 
@@ -262,12 +262,14 @@ void chan_comments_key(struct chan *chan, int ch) {
             free(statusbuf);
         }
         wrefresh(chan->status_win);
+
+        return 1;
     } else switch (ch) {
         case '\x1b': // esc
             chan->view_urlnbuf[0] = '\0';
             wclear(chan->status_win);
             wrefresh(chan->status_win);
-            break;
+            return 1;
         case 'j':
             if (chan->view_scroll + chan->main_lines < chan->view_lines - 1) {
                 ++chan->view_scroll;
@@ -276,7 +278,7 @@ void chan_comments_key(struct chan *chan, int ch) {
                         chan->view_scroll + chan->main_lines);
                 wrefresh(chan->main_win);
             }
-            break;
+            return 1;
         case 'k':
             if (chan->view_scroll > 0) {
                 --chan->view_scroll;
@@ -284,10 +286,10 @@ void chan_comments_key(struct chan *chan, int ch) {
                 draw_view_line(chan, 0, chan->view_scroll);
                 wrefresh(chan->main_win);
             }
-            break;
+            return 1;
         case 'o':
             urlopen(chan->viewing->url);
-            break;
+            return 1;
         case 'q':
             chan->viewing = NULL;
             for (int i = 0; i < chan->view_lines; ++i) {
@@ -304,6 +306,8 @@ void chan_comments_key(struct chan *chan, int ch) {
             wclear(chan->status_win);
             wrefresh(chan->status_win);
             chan_draw_submissions(chan);
-            break;
+            return 1;
+        default:
+            return 0;
     }
 }

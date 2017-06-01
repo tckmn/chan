@@ -20,6 +20,8 @@ struct chan {
     int view_lines;
     int view_scroll;
     char view_urlnbuf[VIEW_URLNBUF_LEN];
+    char *username;
+    char *password;
 };
 
 #define FMT_USER 0
