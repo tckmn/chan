@@ -6,6 +6,55 @@
 #include <stdlib.h>
 #include <string.h>
 
+char *unhtml(const char *src, int len) {
+    char *dest = malloc(len + 1);
+    int i, j;
+    for (i = 0, j = 0; i < len;) {
+        if (src[i] == '&') {
+            if (!strncmp(src + i, "&#x27;", 6)) {
+                i += 6;
+                dest[j++] = '\'';
+            } else if (!strncmp(src + i, "&#x2F;", 6)) {
+                i += 6;
+                dest[j++] = '/';
+            } else if (!strncmp(src + i, "&quot;", 6)) {
+                i += 6;
+                dest[j++] = '"';
+            } else if (!strncmp(src + i, "&lt;", 4)) {
+                i += 4;
+                dest[j++] = '<';
+            } else if (!strncmp(src + i, "&gt;", 4)) {
+                i += 4;
+                dest[j++] = '>';
+            } else if (!strncmp(src + i, "&amp;", 5)) {
+                i += 5;
+                dest[j++] = '&';
+            } else ++i;
+        } else if (src[i] == '<') {
+            if (!strncmp(src + i, "<p>", 3)) {
+                i += 3;
+                dest[j++] = '\n';
+                dest[j++] = '\n';
+            } else if (!strncmp(src + i, "<a ", 3)) {
+                // TODO do something with links, make them clickable
+                i += strchr(src + i, '>') - (src + i) + 1;
+            } else if (!strncmp(src + i, "</a>", 4)) {
+                i += 4;
+            } else if (!strncmp(src + i, "<i>", 3)) {
+                i += 3;
+                dest[j++] = '*';
+            } else if (!strncmp(src + i, "</i>", 4)) {
+                i += 4;
+                dest[j++] = '*';
+            } else ++i;
+        } else {
+            dest[j++] = src[i++];
+        }
+    }
+    dest[j] = '\0';
+    return dest;
+}
+
 void chan_update_comments(struct chan *chan) {
     free(chan->viewing->comments);
     chan->viewing->comments = malloc(chan->viewing->ncomments *
@@ -43,52 +92,7 @@ void chan_update_comments(struct chan *chan) {
 
         data = jumptag(data, 1);
         int text_len = strchr(data, '\n') - data - 6;
-        char *text = malloc(text_len + 1);
-        int i, j;
-        for (i = 0, j = 0; i < text_len;) {
-            if (data[i] == '&') {
-                if (!strncmp(data + i, "&#x27;", 6)) {
-                    i += 6;
-                    text[j++] = '\'';
-                } else if (!strncmp(data + i, "&#x2F;", 6)) {
-                    i += 6;
-                    text[j++] = '/';
-                } else if (!strncmp(data + i, "&quot;", 6)) {
-                    i += 6;
-                    text[j++] = '"';
-                } else if (!strncmp(data + i, "&lt;", 4)) {
-                    i += 4;
-                    text[j++] = '<';
-                } else if (!strncmp(data + i, "&gt;", 4)) {
-                    i += 4;
-                    text[j++] = '>';
-                } else if (!strncmp(data + i, "&amp;", 5)) {
-                    i += 5;
-                    text[j++] = '&';
-                } else ++i;
-            } else if (data[i] == '<') {
-                if (!strncmp(data + i, "<p>", 3)) {
-                    i += 3;
-                    text[j++] = '\n';
-                    text[j++] = '\n';
-                } else if (!strncmp(data + i, "<a ", 3)) {
-                    // TODO do something with links, make them clickable
-                    i += strchr(data + i, '>') - (data + i) + 1;
-                } else if (!strncmp(data + i, "</a>", 4)) {
-                    i += 4;
-                } else if (!strncmp(data + i, "<i>", 3)) {
-                    i += 3;
-                    text[j++] = '*';
-                } else if (!strncmp(data + i, "</i>", 4)) {
-                    i += 4;
-                    text[j++] = '*';
-                } else ++i;
-            } else {
-                text[j++] = data[i++];
-            }
-        }
-        text[j] = '\0';
-        comments[idx].text = text;
+        comments[idx].text = unhtml(data, text_len);;
 
         ++idx;
     }
