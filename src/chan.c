@@ -71,6 +71,7 @@ void chan_destroy(struct chan *chan) {
     endwin();
 
     // curl cleanup
+    curl_easy_cleanup(chan->curl);
     curl_global_cleanup();
 
     chan_destroy_submissions(chan);
