@@ -62,6 +62,9 @@ void chan_update_comments(struct chan *chan) {
                 } else if (!strncmp(data + i, "&gt;", 4)) {
                     i += 4;
                     text[j++] = '>';
+                } else if (!strncmp(data + i, "&amp;", 5)) {
+                    i += 5;
+                    text[j++] = '&';
                 } else ++i;
             } else if (data[i] == '<') {
                 if (!strncmp(data + i, "<p>", 3)) {
