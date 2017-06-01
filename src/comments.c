@@ -103,6 +103,14 @@ void add_view_line(struct chan *chan, char *str, int len, int indent) {
     chan->view_buf = realloc(chan->view_buf,
             (++chan->view_lines) * sizeof *chan->view_buf);
     chan->view_buf[chan->view_lines - 1] = line;
+
+    chan->view_buf_fmt = realloc(chan->view_buf_fmt,
+            chan->view_lines * sizeof *chan->view_buf_fmt);
+    chan->view_buf_fmt[chan->view_lines - 1] = NULL;
+}
+
+void draw_view_line(struct chan *chan, int y, int lineno) {
+    mvwaddstr(chan->main_win, y, 0, chan->view_buf[lineno]);
 }
 
 void chan_draw_comments(struct chan *chan) {
@@ -141,7 +149,7 @@ void chan_draw_comments(struct chan *chan) {
 
     chan->view_scroll = 0;
     for (int i = 0; i < chan->view_lines && i < chan->main_lines; ++i) {
-        mvwaddstr(chan->main_win, i, 0, chan->view_buf[i]);
+        draw_view_line(chan, i, i);
     }
 
     wrefresh(chan->main_win);
@@ -153,8 +161,8 @@ void chan_comments_key(struct chan *chan, int ch) {
             if (chan->view_scroll + chan->main_lines < chan->view_lines) {
                 ++chan->view_scroll;
                 wscrl(chan->main_win, 1);
-                mvwaddstr(chan->main_win, chan->main_lines - 1, 0,
-                        chan->view_buf[chan->view_scroll + chan->main_lines]);
+                draw_view_line(chan, chan->main_lines - 1,
+                        chan->view_scroll + chan->main_lines);
                 wrefresh(chan->main_win);
             }
             break;
@@ -162,8 +170,7 @@ void chan_comments_key(struct chan *chan, int ch) {
             if (chan->view_scroll > 0) {
                 --chan->view_scroll;
                 wscrl(chan->main_win, -1);
-                mvwaddstr(chan->main_win, 0, 0,
-                        chan->view_buf[chan->view_scroll]);
+                draw_view_line(chan, 0, chan->view_scroll);
                 wrefresh(chan->main_win);
             }
             break;
@@ -180,9 +187,12 @@ void chan_comments_key(struct chan *chan, int ch) {
             chan->viewing = NULL;
             for (int i = 0; i < chan->view_lines; ++i) {
                 free(chan->view_buf[i]);
+                free(chan->view_buf_fmt[i]);
             }
             free(chan->view_buf);
             chan->view_buf = NULL;
+            free(chan->view_buf_fmt);
+            chan->view_buf_fmt = NULL;
             chan->view_lines = 0;
             chan_draw_submissions(chan);
             break;

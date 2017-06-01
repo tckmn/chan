@@ -11,6 +11,7 @@ struct chan *chan_init() {
     chan->active_submission = 0;
     chan->viewing = NULL;
     chan->view_buf = NULL;
+    chan->view_buf_fmt = NULL;
     chan->view_lines = 0;
     chan->view_scroll = 0;
 
@@ -19,6 +20,7 @@ struct chan *chan_init() {
     raw();
     noecho();
     curs_set(0);
+    start_color();
 
     chan->main_win = newwin(chan->main_lines = LINES - 1,
             chan->main_cols = COLS, 0, 0);

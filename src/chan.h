@@ -15,8 +15,18 @@ struct chan {
     int active_submission;
     struct submission *viewing;
     char **view_buf;
+    struct fmt **view_buf_fmt;
     int view_lines;
     int view_scroll;
+};
+
+#define FMT_USER 0
+#define FMT_AGE  1
+struct fmt {
+    int type;
+    int offset;
+    int len;
+    struct fmt *next;
 };
 
 struct submission {
