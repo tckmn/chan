@@ -109,6 +109,11 @@ void chan_update_comments(struct chan *chan) {
 
         ++idx;
     }
+    if (idx < chan->viewing->ncomments - 1) {
+        chan->viewing->ncomments = idx + 1;
+        chan->viewing->comments = realloc(chan->viewing->comments,
+                chan->viewing->ncomments * sizeof *comments);
+    }
 }
 
 void add_view_fmt(struct chan *chan, int type, int offset, int len) {
