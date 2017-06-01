@@ -91,6 +91,7 @@ void chan_redraw_submission(struct chan *chan, int i) {
         line[COLS] = '\0';
     }
     mvwaddstr(chan->main_win, i, 0, line);
+    free(line);
 }
 
 void chan_draw_submissions(struct chan *chan) {
@@ -125,6 +126,8 @@ void chan_submissions_key(struct chan *chan, int ch) {
             char *cmd = malloc(strlen(url) + 12);
             sprintf(cmd, "xdg-open '%s'", url);
             system(cmd);
+            free(url);
+            free(cmd);
             break;
         }
         case '\n':

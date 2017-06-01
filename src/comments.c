@@ -76,6 +76,7 @@ void chan_update_comments(struct chan *chan) {
     char *url = malloc(50);
     sprintf(url, "https://news.ycombinator.com/item?id=%d", chan->viewing->id);
     char *data = do_GET(chan->curl, url);
+    free(url);
 
     int idx = 0;
     while ((data = strstr(data, "<tr class='athing comtr"))) {
@@ -185,6 +186,7 @@ void chan_draw_comments(struct chan *chan) {
         add_view_line(chan, head, linewidth, indent);
         add_view_fmt(chan, FMT_USER, indent, strlen(comment.user));
         add_view_fmt(chan, FMT_AGE, indent + strlen(comment.user) + 2, strlen(comment.age));
+        free(head);
 
         for (int j = 0; j < strlen(comment.text); ++j) {
             if (j - breakidx >= linewidth) {
@@ -260,6 +262,8 @@ void chan_comments_key(struct chan *chan, int ch) {
             char *cmd = malloc(strlen(url) + 12);
             sprintf(cmd, "xdg-open '%s'", url);
             system(cmd);
+            free(url);
+            free(cmd);
             break;
         }
         case 'q':
