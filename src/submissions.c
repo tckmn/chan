@@ -35,6 +35,11 @@ void chan_update_submissions(struct chan *chan) {
         data += strlen("<tr class='athing' id='");
         submission->id = atoi(data);
 
+        char *auth = strstr(data, "auth=");
+        if (auth && auth < jumpch(data, '\n', 2)) {
+            copyuntil(&submission->auth, auth + strlen("auth="), '&');
+        } else submission->auth = NULL;
+
         data = strstr(data, "<td class=\"title\"><a href=\"") +
             strlen("<td class=\"title\"><a href=\"");
         copyuntil(&submission->url, data, '"');
@@ -128,6 +133,19 @@ int chan_submissions_key(struct chan *chan, int ch) {
         case 'o':
             urlopen(chan->submissions[chan->active_submission].url);
             return 1;
+        case 'r':
+            chan_update_submissions(chan);
+            chan_draw_submissions(chan);
+            return 1;
+        case 'u': {
+            char *buf = malloc(100);
+            sprintf(buf, "https://news.ycombinator.com/vote?id=%d&how=up&auth=%s",
+                    chan->submissions[chan->active_submission].id,
+                    chan->submissions[chan->active_submission].auth);
+            do_GET_nodata(chan->curl, buf);
+            free(buf);
+            return 1;
+        }
         case '\n':
             chan->viewing = chan->submissions + chan->active_submission;
             if (!chan->viewing->comments) chan_update_comments(chan);

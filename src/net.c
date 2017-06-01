@@ -32,9 +32,22 @@ char *do_GET(CURL *curl, const char *url) {
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buf);
     curl_easy_perform(curl);
 
-    // set the callback back for future calls to curl_easy_perform
+    return buf.data;
+}
+
+void do_GET_nodata(CURL *curl, const char *url) {
+    curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
+    curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, nop_callback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, NULL);
+    curl_easy_perform(curl);
+}
 
-    return buf.data;
+void do_POST_nodata(CURL *curl, const char *url, const char *fields) {
+    curl_easy_setopt(curl, CURLOPT_POST, 1L);
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, fields);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, nop_callback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, NULL);
+    curl_easy_perform(curl);
 }

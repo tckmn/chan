@@ -36,6 +36,7 @@ struct fmt {
 
 struct submission {
     int id;
+    char *auth;
     char *url;
     char *title;
     int job;

@@ -38,6 +38,8 @@ struct chan *chan_init() {
     // curl initialization
     curl_global_init(CURL_GLOBAL_DEFAULT);
     chan->curl = curl_easy_init();
+    // start cookie engine
+    curl_easy_setopt(chan->curl, CURLOPT_COOKIEFILE, "");
 
     return chan;
 }
