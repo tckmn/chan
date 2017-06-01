@@ -48,8 +48,13 @@ char *unhtml(struct chan *chan, char *src, int len) {
                 // add_view_line, but we need to use a distinctive marker
                 // so that URL formatting can be applied later
                 dest[j++] = 1;
+                int startidx = j;
                 for (int n = chan->viewing->nurls; n; n /= 10) {
-                    dest[j++] = '0' + (n % 10);
+                    for (int idx = startidx; idx < j; ++idx) {
+                        dest[idx+1] = dest[idx];
+                    }
+                    dest[startidx] = '0' + (n % 10);
+                    ++j;
                 }
                 dest[j++] = ']';
             } else if (!strncmp(src + i, "<i>", 3)) {
