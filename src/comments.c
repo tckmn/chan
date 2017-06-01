@@ -58,6 +58,15 @@ char *unhtml(struct chan *chan, char *src, int len) {
             } else if (!strncmp(src + i, "</i>", 4)) {
                 i += 4;
                 dest[j++] = '*';
+            } else if (!strncmp(src + i, "<pre><code>", 11)) {
+                i += 11;
+            } else if (!strncmp(src + i, "</code></pre>", 13)) {
+                i += 13;
+            } else if (!strncmp(src + i, "<span>", 6)) {
+                // HN has broken html and renders its comments as
+                // <span class="c##"> ... <span></span>
+                // so I guess we handle broken html with broken methods
+                break;
             } else ++i;
         } else {
             dest[j++] = src[i++];
@@ -104,7 +113,7 @@ void chan_update_comments(struct chan *chan) {
         comments[idx].badness = badness ? badness / 17 - 4 : 0;
 
         data = jumptag(data, 1);
-        int text_len = strchr(data, '\n') - data - 6;
+        int text_len = strstr(data, "</span>") - data;
         comments[idx].text = unhtml(chan, data, text_len);;
 
         ++idx;
