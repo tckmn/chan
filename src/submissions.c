@@ -129,7 +129,7 @@ void chan_submissions_key(struct chan *chan, int ch) {
         }
         case '\n':
             chan->viewing = chan->submissions + chan->active_submission;
-            chan_update_comments(chan);
+            if (!chan->viewing->comments) chan_update_comments(chan);
             chan_draw_comments(chan);
             break;
     }
