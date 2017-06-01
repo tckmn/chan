@@ -42,7 +42,41 @@ void chan_update_comments(struct chan *chan) {
         comments[idx].badness = badness ? badness / 17 - 4 : 0;
 
         data = jumptag(data, 1);
-        copyuntiloff(&comments[idx].text, data, '\n', -6);
+        int text_len = strchr(data, '\n') - data - 6;
+        char *text = malloc(text_len + 1);
+        int i, j;
+        for (i = 0, j = 0; i < text_len;) {
+            if (data[i] == '&') {
+                if (!strncmp(data + i, "&#x27;", 6)) {
+                    i += 6;
+                    text[j++] = '\'';
+                } else if (!strncmp(data + i, "&#x2F;", 6)) {
+                    i += 6;
+                    text[j++] = '/';
+                } else if (!strncmp(data + i, "&lt;", 4)) {
+                    i += 4;
+                    text[j++] = '<';
+                } else if (!strncmp(data + i, "&gt;", 4)) {
+                    i += 4;
+                    text[j++] = '>';
+                } else ++i;
+            } else if (data[i] == '<') {
+                if (!strncmp(data + i, "<p>", 3)) {
+                    i += 3;
+                    text[j++] = '\n';
+                    text[j++] = '\n';
+                } else if (!strncmp(data + i, "<a ", 3)) {
+                    // TODO do something with links, make them clickable
+                    i += strchr(data + i, '>') - (data + i) + 1;
+                } else if (!strncmp(data + i, "</a>", 4)) {
+                    i += 4;
+                } else ++i;
+            } else {
+                text[j++] = data[i++];
+            }
+        }
+        text[j] = '\0';
+        comments[idx].text = text;
 
         ++idx;
     }
@@ -80,9 +114,14 @@ void chan_draw_comments(struct chan *chan) {
                 }
             } else if (comment.text[j] == ' ') {
                 lastspace = j - breakidx;
+            } else if (comment.text[j] == '\n') {
+                add_view_line(chan, comment.text + breakidx, j - breakidx, indent);
+                lastspace = 0;
+                breakidx = j + 1;
             }
         }
         add_view_line(chan, comment.text + breakidx, linewidth, indent);
+        add_view_line(chan, "", 0, 0);
     }
 
     for (int i = 0; i < chan->view_lines && i < LINES; ++i) {
