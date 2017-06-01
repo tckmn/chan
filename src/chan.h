@@ -18,10 +18,13 @@ struct chan {
     struct fmt **view_buf_fmt;
     int view_lines;
     int view_scroll;
+    char **view_urls;
+    int view_nurls;
 };
 
 #define FMT_USER 0
 #define FMT_AGE  1
+#define FMT_URL  2
 struct fmt {
     int type;
     int offset;

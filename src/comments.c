@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-char *unhtml(const char *src, int len) {
+char *unhtml(struct chan *chan, char *src, int len) {
     char *dest = malloc(len + 1);
     int i, j;
     for (i = 0, j = 0; i < len;) {
@@ -36,10 +36,22 @@ char *unhtml(const char *src, int len) {
                 dest[j++] = '\n';
                 dest[j++] = '\n';
             } else if (!strncmp(src + i, "<a ", 3)) {
-                // TODO do something with links, make them clickable
-                i += strchr(src + i, '>') - (src + i) + 1;
-            } else if (!strncmp(src + i, "</a>", 4)) {
-                i += 4;
+                char *urlstart = jumpquot(src + i, 1),
+                     *urlend = strchr(urlstart, '"');
+                char *url = unhtml(chan, urlstart, urlend - urlstart);
+                chan->view_urls = realloc(chan->view_urls,
+                        (++chan->view_nurls) * sizeof *chan->view_urls);
+                chan->view_urls[chan->view_nurls - 1] = url;
+
+                i = jumptag(src + i, 2) - src;
+                // this \x01 will be replaced with an opening bracket in
+                // add_view_line, but we need to use a distinctive marker
+                // so that URL formatting can be applied later
+                dest[j++] = 1;
+                for (int n = chan->view_nurls; n; n /= 10) {
+                    dest[j++] = '0' + (n % 10);
+                }
+                dest[j++] = ']';
             } else if (!strncmp(src + i, "<i>", 3)) {
                 i += 3;
                 dest[j++] = '*';
@@ -92,25 +104,10 @@ void chan_update_comments(struct chan *chan) {
 
         data = jumptag(data, 1);
         int text_len = strchr(data, '\n') - data - 6;
-        comments[idx].text = unhtml(data, text_len);;
+        comments[idx].text = unhtml(chan, data, text_len);;
 
         ++idx;
     }
-}
-
-void add_view_line(struct chan *chan, char *str, int len, int indent) {
-    char *line = malloc(len + indent + 1);
-    memset(line, ' ', indent);
-    strncpy(line + indent, str, len);
-    line[len + indent] = '\0';
-
-    chan->view_buf = realloc(chan->view_buf,
-            (++chan->view_lines) * sizeof *chan->view_buf);
-    chan->view_buf[chan->view_lines - 1] = line;
-
-    chan->view_buf_fmt = realloc(chan->view_buf_fmt,
-            chan->view_lines * sizeof *chan->view_buf_fmt);
-    chan->view_buf_fmt[chan->view_lines - 1] = NULL;
 }
 
 void add_view_fmt(struct chan *chan, int type, int offset, int len) {
@@ -129,6 +126,29 @@ void add_view_fmt(struct chan *chan, int type, int offset, int len) {
     }
 }
 
+void add_view_line(struct chan *chan, char *str, int len, int indent) {
+    char *line = malloc(len + indent + 1);
+    memset(line, ' ', indent);
+    strncpy(line + indent, str, len);
+    line[len + indent] = '\0';
+
+    chan->view_buf = realloc(chan->view_buf,
+            (++chan->view_lines) * sizeof *chan->view_buf);
+    chan->view_buf[chan->view_lines - 1] = line;
+
+    chan->view_buf_fmt = realloc(chan->view_buf_fmt,
+            chan->view_lines * sizeof *chan->view_buf_fmt);
+    chan->view_buf_fmt[chan->view_lines - 1] = NULL;
+
+    // fix \x01 markers for URLs and add their formatting
+    for (int i = 0; line[i]; ++i) {
+        if (line[i] == 1) {
+            line[i] = '[';
+            add_view_fmt(chan, FMT_URL, i, strchr(line + i, ']') - (line + i) + 1);
+        }
+    }
+}
+
 void draw_view_line(struct chan *chan, int y, int lineno) {
     char *line = chan->view_buf[lineno];
     struct fmt *fmt = chan->view_buf_fmt[lineno];
@@ -140,6 +160,7 @@ void draw_view_line(struct chan *chan, int y, int lineno) {
         switch (fmt->type) {
             case FMT_USER: wattrset(chan->main_win, A_BOLD | COLOR_PAIR(1)); break;
             case FMT_AGE: wattrset(chan->main_win, A_BOLD | COLOR_PAIR(2)); break;
+            case FMT_URL: wattrset(chan->main_win, A_BOLD | COLOR_PAIR(3)); break;
         }
         mvwaddnstr(chan->main_win, y, fmt->offset, line + fmt->offset, fmt->len);
 
@@ -234,6 +255,13 @@ void chan_comments_key(struct chan *chan, int ch) {
             free(chan->view_buf_fmt);
             chan->view_buf_fmt = NULL;
             chan->view_lines = 0;
+            chan->view_scroll = 0;
+            for (int i = 0; i < chan->view_nurls; ++i) {
+                free(chan->view_urls[i]);
+            }
+            free(chan->view_urls);
+            chan->view_urls = NULL;
+            chan->view_nurls = 0;
             chan_draw_submissions(chan);
             break;
     }

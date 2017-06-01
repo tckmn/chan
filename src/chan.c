@@ -14,6 +14,8 @@ struct chan *chan_init() {
     chan->view_buf_fmt = NULL;
     chan->view_lines = 0;
     chan->view_scroll = 0;
+    chan->view_urls = NULL;
+    chan->view_nurls = 0;
 
     // ncurses initialization
     initscr();
@@ -23,6 +25,7 @@ struct chan *chan_init() {
     start_color();
     init_pair(1, COLOR_RED, COLOR_BLACK);
     init_pair(2, COLOR_GREEN, COLOR_BLACK);
+    init_pair(3, COLOR_BLUE, COLOR_BLACK);
 
     chan->main_win = newwin(chan->main_lines = LINES - 1,
             chan->main_cols = COLS, 0, 0);
