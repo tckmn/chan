@@ -85,7 +85,7 @@ void chan_draw_comments(struct chan *chan) {
         add_view_line(chan, comment.text + breakidx, linewidth, indent);
     }
 
-    for (int i = 0; i < LINES; ++i) {
+    for (int i = 0; i < chan->view_lines && i < LINES; ++i) {
         mvwaddstr(chan->main_win, i, 0, chan->view_buf[i]);
     }
 
