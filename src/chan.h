@@ -4,6 +4,7 @@
 #include <ncurses.h>
 #include <curl/curl.h>
 
+#define VIEW_URLNBUF_LEN 4
 struct chan {
     CURL *curl;
     WINDOW *main_win;
@@ -20,6 +21,7 @@ struct chan {
     int view_scroll;
     char **view_urls;
     int view_nurls;
+    char view_urlnbuf[VIEW_URLNBUF_LEN];
 };
 
 #define FMT_USER 0

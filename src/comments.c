@@ -217,7 +217,25 @@ void chan_draw_comments(struct chan *chan) {
 }
 
 void chan_comments_key(struct chan *chan, int ch) {
-    switch (ch) {
+    if (ch >= '0' && ch <= '9') {
+        wclear(chan->status_win);
+
+        int len = strlen(chan->view_urlnbuf);
+        chan->view_urlnbuf[len] = ch;
+        chan->view_urlnbuf[len+1] = '\0';
+
+        int urln = atoi(chan->view_urlnbuf);
+        if (!urln || urln > chan->view_nurls) {
+            chan->view_urlnbuf[0] = '\0';
+        } else {
+            char *statusbuf = malloc(COLS + 1);
+            snprintf(statusbuf, COLS + 1, "[%s] %s", chan->view_urlnbuf,
+                    chan->view_urls[urln - 1]);
+            mvwaddstr(chan->status_win, 0, 0, statusbuf);
+            free(statusbuf);
+        }
+        wrefresh(chan->status_win);
+    } else switch (ch) {
         case 'j':
             if (chan->view_scroll + chan->main_lines < chan->view_lines) {
                 ++chan->view_scroll;
@@ -262,6 +280,7 @@ void chan_comments_key(struct chan *chan, int ch) {
             free(chan->view_urls);
             chan->view_urls = NULL;
             chan->view_nurls = 0;
+            chan->view_urlnbuf[0] = '\0';
             chan_draw_submissions(chan);
             break;
     }
