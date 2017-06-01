@@ -48,12 +48,15 @@ void chan_update_comments(struct chan *chan) {
     }
 }
 
-void add_view_line(struct chan *chan, char *str, int len) {
+void add_view_line(struct chan *chan, char *str, int len, int indent) {
+    char *line = malloc(len + indent + 1);
+    memset(line, ' ', indent);
+    strncpy(line + indent, str, len);
+    line[len + indent] = '\0';
+
     chan->view_buf = realloc(chan->view_buf,
             (++chan->view_lines) * sizeof *chan->view_buf);
-    chan->view_buf[chan->view_lines - 1] = malloc(len + 1);
-    strncpy(chan->view_buf[chan->view_lines - 1], str, len);
-    chan->view_buf[chan->view_lines - 1][len] = '\0';
+    chan->view_buf[chan->view_lines - 1] = line;
 }
 
 void chan_draw_comments(struct chan *chan) {
@@ -63,22 +66,23 @@ void chan_draw_comments(struct chan *chan) {
     // TODO unicode support
     for (int i = 0; i < chan->viewing->ncomments; ++i) {
         struct comment comment = chan->viewing->comments[i];
-        int lastspace = 0, breakidx = 0;
+        int lastspace = 0, breakidx = 0, indent = comment.depth * 2,
+            linewidth = COLS - indent;
         for (int j = 0; j < strlen(comment.text); ++j) {
-            if (j - breakidx >= COLS) {
+            if (j - breakidx >= linewidth) {
                 if (lastspace) {
-                    add_view_line(chan, comment.text + breakidx, lastspace);
+                    add_view_line(chan, comment.text + breakidx, lastspace, indent);
                     breakidx += lastspace + 1;
                     lastspace = 0;
                 } else {
-                    add_view_line(chan, comment.text + breakidx, COLS);
-                    breakidx += COLS;
+                    add_view_line(chan, comment.text + breakidx, linewidth, indent);
+                    breakidx += linewidth;
                 }
             } else if (comment.text[j] == ' ') {
                 lastspace = j - breakidx;
             }
         }
-        add_view_line(chan, comment.text + breakidx, COLS);
+        add_view_line(chan, comment.text + breakidx, linewidth, indent);
     }
 
     for (int i = 0; i < LINES; ++i) {
