@@ -53,6 +53,9 @@ void chan_update_comments(struct chan *chan) {
                 } else if (!strncmp(data + i, "&#x2F;", 6)) {
                     i += 6;
                     text[j++] = '/';
+                } else if (!strncmp(data + i, "&quot;", 6)) {
+                    i += 6;
+                    text[j++] = '"';
                 } else if (!strncmp(data + i, "&lt;", 4)) {
                     i += 4;
                     text[j++] = '<';
@@ -70,6 +73,12 @@ void chan_update_comments(struct chan *chan) {
                     i += strchr(data + i, '>') - (data + i) + 1;
                 } else if (!strncmp(data + i, "</a>", 4)) {
                     i += 4;
+                } else if (!strncmp(data + i, "<i>", 3)) {
+                    i += 3;
+                    text[j++] = '*';
+                } else if (!strncmp(data + i, "</i>", 4)) {
+                    i += 4;
+                    text[j++] = '*';
                 } else ++i;
             } else {
                 text[j++] = data[i++];
