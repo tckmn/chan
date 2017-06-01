@@ -12,6 +12,10 @@ void chan_destroy_submissions(struct chan *chan) {
         free(chan->submissions[i].title);
         free(chan->submissions[i].user);
         free(chan->submissions[i].comments);
+        for (int j = 0; j < chan->submissions[i].nurls; ++j) {
+            free(chan->submissions[i].urls[j]);
+        }
+        free(chan->submissions[i].urls);
     }
     free(chan->submissions);
     chan->submissions = NULL;

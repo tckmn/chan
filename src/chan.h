@@ -19,8 +19,6 @@ struct chan {
     struct fmt **view_buf_fmt;
     int view_lines;
     int view_scroll;
-    char **view_urls;
-    int view_nurls;
     char view_urlnbuf[VIEW_URLNBUF_LEN];
 };
 
@@ -44,6 +42,8 @@ struct submission {
     char *age;
     struct comment *comments;
     int ncomments;
+    char **urls;
+    int nurls;
 };
 
 struct comment {

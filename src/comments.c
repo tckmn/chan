@@ -39,16 +39,16 @@ char *unhtml(struct chan *chan, char *src, int len) {
                 char *urlstart = jumpquot(src + i, 1),
                      *urlend = strchr(urlstart, '"');
                 char *url = unhtml(chan, urlstart, urlend - urlstart);
-                chan->view_urls = realloc(chan->view_urls,
-                        (++chan->view_nurls) * sizeof *chan->view_urls);
-                chan->view_urls[chan->view_nurls - 1] = url;
+                chan->viewing->urls = realloc(chan->viewing->urls,
+                        (++chan->viewing->nurls) * sizeof *chan->viewing->urls);
+                chan->viewing->urls[chan->viewing->nurls - 1] = url;
 
                 i = jumptag(src + i, 2) - src;
                 // this \x01 will be replaced with an opening bracket in
                 // add_view_line, but we need to use a distinctive marker
                 // so that URL formatting can be applied later
                 dest[j++] = 1;
-                for (int n = chan->view_nurls; n; n /= 10) {
+                for (int n = chan->viewing->nurls; n; n /= 10) {
                     dest[j++] = '0' + (n % 10);
                 }
                 dest[j++] = ']';
@@ -232,12 +232,12 @@ void chan_comments_key(struct chan *chan, int ch) {
         chan->view_urlnbuf[len+1] = '\0';
 
         int urln = atoi(chan->view_urlnbuf);
-        if (!urln || urln > chan->view_nurls) {
+        if (!urln || urln > chan->viewing->nurls) {
             chan->view_urlnbuf[0] = '\0';
         } else {
             char *statusbuf = malloc(COLS + 1);
             snprintf(statusbuf, COLS + 1, "[%s] %s", chan->view_urlnbuf,
-                    chan->view_urls[urln - 1]);
+                    chan->viewing->urls[urln - 1]);
             mvwaddstr(chan->status_win, 0, 0, statusbuf);
             free(statusbuf);
         }
@@ -283,13 +283,9 @@ void chan_comments_key(struct chan *chan, int ch) {
             chan->view_buf_fmt = NULL;
             chan->view_lines = 0;
             chan->view_scroll = 0;
-            for (int i = 0; i < chan->view_nurls; ++i) {
-                free(chan->view_urls[i]);
-            }
-            free(chan->view_urls);
-            chan->view_urls = NULL;
-            chan->view_nurls = 0;
             chan->view_urlnbuf[0] = '\0';
+            wclear(chan->status_win);
+            wrefresh(chan->status_win);
             chan_draw_submissions(chan);
             break;
     }

@@ -14,8 +14,6 @@ struct chan *chan_init() {
     chan->view_buf_fmt = NULL;
     chan->view_lines = 0;
     chan->view_scroll = 0;
-    chan->view_urls = NULL;
-    chan->view_nurls = 0;
     chan->view_urlnbuf[0] = '\0';
 
     // ncurses initialization
