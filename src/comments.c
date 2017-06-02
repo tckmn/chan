@@ -292,7 +292,12 @@ int chan_comments_key(struct chan *chan, int ch) {
             }
             return 1;
         case 'o':
-            urlopen(chan->viewing->url);
+            if (chan->view_urlnbuf[0]) {
+                wclear(chan->status_win);
+                wrefresh(chan->status_win);
+                urlopen(chan->viewing->urls[atoi(chan->view_urlnbuf)-1]);
+                chan->view_urlnbuf[0] = '\0';
+            } else urlopen(chan->viewing->url);
             return 1;
         case 'q':
             chan->viewing = NULL;
