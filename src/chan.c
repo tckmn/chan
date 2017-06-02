@@ -6,19 +6,8 @@
 #include <stdlib.h>
 
 struct chan *chan_init() {
-    struct chan *chan = malloc(sizeof *chan);
-    chan->submissions = NULL;
-    chan->nsubmissions = 0;
-    chan->active_submission = 0;
+    struct chan *chan = calloc(1, sizeof *chan);
     chan->submission_fs = "%s %a %c %t";
-    chan->viewing = NULL;
-    chan->view_buf = NULL;
-    chan->view_buf_fmt = NULL;
-    chan->view_lines = 0;
-    chan->view_scroll = 0;
-    chan->view_urlnbuf[0] = '\0';
-    chan->username = NULL;
-    chan->password = NULL;
 
     // ncurses initialization
     initscr();
