@@ -9,7 +9,21 @@
 struct chan *chan_init(int argc, char **argv) {
     // chan initialization
     struct chan *chan = calloc(1, sizeof *chan);
-    chan_config(chan, argc, argv);
+
+    // curl initialization
+    // (we only do this in the middle of initializing chan because in case a
+    //  username or password is passed as a config option, we need it to
+    //  authenticate)
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+    chan->curl = curl_easy_init();
+    // start cookie engine
+    curl_easy_setopt(chan->curl, CURLOPT_COOKIEFILE, "");
+
+    // chan initialization (episode 2)
+    if (chan_config(chan, argc, argv)) {
+        free(chan);
+        return NULL;
+    }
 
     // ncurses initialization
     initscr();
@@ -26,12 +40,6 @@ struct chan *chan_init(int argc, char **argv) {
     scrollok(chan->main_win, TRUE);
     chan->status_win = newwin(1, COLS, LINES - 1, 0);
     refresh();
-
-    // curl initialization
-    curl_global_init(CURL_GLOBAL_DEFAULT);
-    chan->curl = curl_easy_init();
-    // start cookie engine
-    curl_easy_setopt(chan->curl, CURLOPT_COOKIEFILE, "");
 
     return chan;
 }
