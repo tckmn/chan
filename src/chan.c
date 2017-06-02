@@ -57,7 +57,6 @@ void chan_main_loop(struct chan *chan) {
 
         // global keybinds
         if (!handled) switch (ch) {
-            case 'l': chan_login_init(chan); break;
             case 'q': goto finish;
         }
     }

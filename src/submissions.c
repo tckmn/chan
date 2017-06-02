@@ -1,5 +1,6 @@
 #include "submissions.h"
 #include "comments.h"
+#include "login.h"
 #include "net.h"
 #include "parse.h"
 #include "sys.h"
@@ -175,6 +176,9 @@ int chan_submissions_key(struct chan *chan, int ch) {
             chan_redraw_submission(chan, chan->active_submission + 1);
             chan_redraw_submission(chan, chan->active_submission);
             wrefresh(chan->main_win);
+            return 1;
+        case 'l':
+            chan_login_init(chan);
             return 1;
         case 'o':
             urlopen(chan->submissions[chan->active_submission].url);

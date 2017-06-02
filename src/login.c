@@ -1,3 +1,4 @@
+#include "submissions.h"
 #include "login.h"
 #include "auth.h"
 
@@ -46,6 +47,11 @@ int addkey(struct chan *chan, char **str, int ch) {
             chan->username = NULL;
             free(chan->password);
             chan->password = NULL;
+
+            if (success) {
+                chan_update_submissions(chan);
+                chan_draw_submissions(chan);
+            }
 
             wclear(chan->status_win);
             waddstr(chan->status_win,
