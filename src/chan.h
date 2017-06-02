@@ -23,6 +23,7 @@ struct chan {
     char view_urlnbuf[VIEW_URLNBUF_LEN];
     char *username;
     char *password;
+    int authenticated;
 };
 
 #define FMT_USER 0

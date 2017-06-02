@@ -199,15 +199,29 @@ int chan_submissions_key(struct chan *chan, int ch) {
             chan_update_submissions(chan);
             chan_draw_submissions(chan);
             return 1;
-        case 'u': {
-            char *buf = malloc(100);
-            sprintf(buf, "https://news.ycombinator.com/vote?id=%d&how=up&auth=%s",
-                    chan->submissions[chan->active_submission].id,
-                    chan->submissions[chan->active_submission].auth);
-            http(chan->curl, buf, NULL, 0);
-            free(buf);
+        case 'u':
+            if (chan->authenticated) {
+                if (chan->submissions[chan->active_submission].voted) {
+                    // TODO unvote
+                } else {
+                    char *buf = malloc(100);
+                    sprintf(buf, "https://news.ycombinator.com/vote?id=%d&how=up&auth=%s",
+                            chan->submissions[chan->active_submission].id,
+                            chan->submissions[chan->active_submission].auth);
+                    http(chan->curl, buf, NULL, 0);
+                    free(buf);
+
+                    chan->submissions[chan->active_submission].voted = 1;
+                    ++chan->submissions[chan->active_submission].score;
+                    chan_redraw_submission(chan, chan->active_submission);
+                    wrefresh(chan->main_win);
+                }
+            } else {
+                wclear(chan->status_win);
+                mvwaddstr(chan->status_win, 0, 0, "You must be authenticated to do that.");
+                wrefresh(chan->status_win);
+            }
             return 1;
-        }
         case '\n':
             chan->viewing = chan->submissions + chan->active_submission;
             if (!chan->viewing->comments) chan_update_comments(chan);

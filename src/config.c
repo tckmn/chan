@@ -177,6 +177,7 @@ int chan_config(struct chan *chan, int argc, char **argv) {
             fputs("the given credentials were invalid\n", stderr);
             return 1;
         }
+        chan->authenticated = 1;
     }
     free(chan->username);
     free(chan->password);

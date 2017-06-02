@@ -49,6 +49,7 @@ int addkey(struct chan *chan, char **str, int ch) {
             chan->password = NULL;
 
             if (success) {
+                chan->authenticated = 1;
                 chan_update_submissions(chan);
                 chan_draw_submissions(chan);
             }
