@@ -85,7 +85,7 @@ void chan_update_submissions(struct chan *chan) {
         if (submission->job) {
             submission->ncomments = 0;
         } else {
-            data = jumptag(data, 7);
+            data = jumptag(strstr(data, "<a href=\"item?"), 1);
             submission->ncomments = atoi(data);
         }
 
