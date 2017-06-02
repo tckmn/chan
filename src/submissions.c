@@ -119,9 +119,13 @@ void chan_redraw_submission(struct chan *chan, int i) {
                 switch (chan->submission_fs[++idx]) {
                     case 's':
                         substr = malloc(5);
-                        snprintf(substr, 5, "%4d", submission.score);
-                        if (submission.voted) {
-                            wattron(chan->main_win, COLOR_PAIR(2));
+                        if (submission.job) {
+                            strcpy(substr, "    ");
+                        } else {
+                            snprintf(substr, 5, "%4d", submission.score);
+                            if (submission.voted) {
+                                wattron(chan->main_win, COLOR_PAIR(2));
+                            }
                         }
                         break;
                     case 'a':
@@ -130,7 +134,11 @@ void chan_redraw_submission(struct chan *chan, int i) {
                         break;
                     case 'c':
                         substr = malloc(4);
-                        snprintf(substr, 4, "%3d", submission.ncomments);
+                        if (submission.job) {
+                            strcpy(substr, "   ");
+                        } else {
+                            snprintf(substr, 4, "%3d", submission.ncomments);
+                        }
                         break;
                     case 't':
                         substr = malloc(strlen(submission.title) + 1);
