@@ -61,9 +61,13 @@ void chan_update_submissions(struct chan *chan) {
             submission->score = atoi(data);
 
             data = jumptag(data, 2);
+            // HN colors new users in green with <font></font>
+            // take that into account
+            int newuser = *data == '<';
+            if (newuser) data = jumptag(data, 1);
             copyuntil(&submission->user, data, '<');
 
-            data = jumptag(data, 3);
+            data = jumptag(data, newuser ? 4 : 3);
         } else if (*data == 'a') {
             // "age" i.e. it's one of those job posts
             submission->job = 1;

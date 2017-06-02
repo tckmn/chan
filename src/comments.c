@@ -109,9 +109,13 @@ void chan_update_comments(struct chan *chan) {
         comments[idx].depth = atoi(data) / 40;
 
         data = jumptag(strstr(data, "hnuser"), 1);
+        // HN colors new users in green with <font></font>
+        // take that into account
+        int newuser = *data == '<';
+        if (newuser) data = jumptag(data, 1);
         copyuntil(&comments[idx].user, data, '<');
 
-        data = jumptag(data, 3);
+        data = jumptag(data, newuser ? 4 : 3);
         copyage(&comments[idx].age, data);
 
         data = jumpquot(strstr(data, "<span class=\"c"), 1) + 1;
