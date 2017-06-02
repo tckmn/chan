@@ -2,12 +2,14 @@
 #include "submissions.h"
 #include "comments.h"
 #include "login.h"
+#include "config.h"
 
 #include <stdlib.h>
 
-struct chan *chan_init() {
+struct chan *chan_init(int argc, char **argv) {
+    // chan initialization
     struct chan *chan = calloc(1, sizeof *chan);
-    chan->submission_fs = "%s %a %c %t";
+    chan_config(chan, argc, argv);
 
     // ncurses initialization
     initscr();

@@ -60,7 +60,7 @@ struct comment {
     char *text;
 };
 
-struct chan *chan_init();
+struct chan *chan_init(int argc, char **argv);
 void chan_main_loop(struct chan *chan);
 void chan_destroy(struct chan *chan);
 

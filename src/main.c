@@ -4,7 +4,7 @@
 
 int main(int argc, char **argv) {
     setlocale(LC_ALL, "");
-    struct chan *chan = chan_init();
+    struct chan *chan = chan_init(argc, argv);
     chan_main_loop(chan);
     chan_destroy(chan);
     return 0;
