@@ -286,7 +286,7 @@ int chan_comments_key(struct chan *chan, int ch) {
                 ++chan->view_scroll;
                 wscrl(chan->main_win, 1);
                 draw_view_line(chan, chan->main_lines - 1,
-                        chan->view_scroll + chan->main_lines);
+                        chan->view_scroll + chan->main_lines - 1);
                 wrefresh(chan->main_win);
             }
             return 1;
