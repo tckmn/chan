@@ -90,7 +90,7 @@ void chan_update_comments(struct chan *chan) {
 
     char *url = malloc(50);
     sprintf(url, "https://news.ycombinator.com/item?id=%d", chan->viewing->id);
-    char *data = do_GET(chan->curl, url);
+    char *data = http(chan->curl, url, NULL, 1);
     free(url);
 
     int idx = 0;

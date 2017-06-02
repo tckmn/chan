@@ -5,6 +5,6 @@
 
 #include <curl/curl.h>
 
-void auth(CURL *curl, char *username, char *password);
+int auth(CURL *curl, char *username, char *password);
 
 #endif

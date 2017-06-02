@@ -138,6 +138,7 @@ int chan_config(struct chan *chan, int argc, char **argv) {
                 strcpy(*stroptdest, ptr);
             }
         } else {
+            used_file = 1;
             int res = config_from_file(chan, argv[i], 1);
             if (res) return res;
         }
@@ -172,7 +173,10 @@ int chan_config(struct chan *chan, int argc, char **argv) {
 
     // if credientials were specified, use them to log in
     if (chan->username && chan->password) {
-        auth(chan->curl, chan->username, chan->password);
+        if (!auth(chan->curl, chan->username, chan->password)) {
+            fputs("the given credentials were invalid\n", stderr);
+            return 1;
+        }
     }
     free(chan->username);
     free(chan->password);

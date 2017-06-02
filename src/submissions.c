@@ -29,7 +29,7 @@ void chan_update_submissions(struct chan *chan) {
     chan->submissions = malloc(30 * sizeof *chan->submissions);
     chan->nsubmissions = 30;
 
-    char *data = do_GET(chan->curl, "https://news.ycombinator.com/");
+    char *data = http(chan->curl, "https://news.ycombinator.com/", NULL, 1);
 
     struct submission *submission = chan->submissions;
     while ((data = strstr(data, "<tr class='athing'"))) {
@@ -188,7 +188,7 @@ int chan_submissions_key(struct chan *chan, int ch) {
             sprintf(buf, "https://news.ycombinator.com/vote?id=%d&how=up&auth=%s",
                     chan->submissions[chan->active_submission].id,
                     chan->submissions[chan->active_submission].auth);
-            do_GET_nodata(chan->curl, buf);
+            http(chan->curl, buf, NULL, 0);
             free(buf);
             return 1;
         }

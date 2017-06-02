@@ -40,7 +40,7 @@ int addkey(struct chan *chan, char **str, int ch) {
         return 1;
     } else if (ch == '\n') {
         if (chan->password) {
-            auth(chan->curl, chan->username, chan->password);
+            int success = auth(chan->curl, chan->username, chan->password);
 
             free(chan->username);
             chan->username = NULL;
@@ -48,8 +48,8 @@ int addkey(struct chan *chan, char **str, int ch) {
             chan->password = NULL;
 
             wclear(chan->status_win);
-            // TODO only claim to be authenticated if we are
-            waddstr(chan->status_win, "Authenticated");
+            waddstr(chan->status_win,
+                    success ? "Authenticated" : "Invalid credentials");
             wrefresh(chan->status_win);
 
             curs_set(0);
