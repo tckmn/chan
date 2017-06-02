@@ -10,6 +10,7 @@ struct chan *chan_init() {
     chan->submissions = NULL;
     chan->nsubmissions = 0;
     chan->active_submission = 0;
+    chan->submission_fs = "%s %a %c %t";
     chan->viewing = NULL;
     chan->view_buf = NULL;
     chan->view_buf_fmt = NULL;

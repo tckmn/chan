@@ -14,6 +14,7 @@ struct chan {
     struct submission *submissions;
     int nsubmissions;
     int active_submission;
+    char *submission_fs;
     struct submission *viewing;
     char **view_buf;
     struct fmt **view_buf_fmt;
@@ -37,6 +38,7 @@ struct fmt {
 struct submission {
     int id;
     char *auth;
+    int voted;
     char *url;
     char *title;
     int job;

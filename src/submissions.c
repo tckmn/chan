@@ -3,6 +3,7 @@
 #include "net.h"
 #include "parse.h"
 #include "sys.h"
+#include "utf8.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -36,8 +37,10 @@ void chan_update_submissions(struct chan *chan) {
         submission->id = atoi(data);
 
         char *auth = strstr(data, "auth=");
+        submission->voted = 0;
         if (auth && auth < jumpch(data, '\n', 2)) {
             copyuntil(&submission->auth, auth + strlen("auth="), '&');
+            if (!strncmp(jumpapos(auth, 2), "nosee", 5)) submission->voted = 1;
         } else submission->auth = NULL;
 
         data = strstr(data, "<td class=\"title\"><a href=\"") +
@@ -89,19 +92,62 @@ void chan_update_submissions(struct chan *chan) {
 void chan_redraw_submission(struct chan *chan, int i) {
     wattrset(chan->main_win, i == chan->active_submission ? A_REVERSE : 0);
     struct submission submission = chan->submissions[i];
-    char *line = malloc(COLS + 1);
-    int written;
-    if (submission.job) {
-        written = snprintf(line, COLS + 1, "    %3s     %s", submission.age, submission.title);
-    } else {
-        written = snprintf(line, COLS + 1, "%3d %3s %3d %s", submission.score, submission.age, submission.ncomments, submission.title);
-    }
-    if (written < COLS) {
-        memset(line + written, ' ', COLS - written);
-        line[COLS] = '\0';
-    }
-    mvwaddstr(chan->main_win, i, 0, line);
-    free(line);
+
+    int y, x;
+    char *substr = NULL;
+    int idx = 0, subidx = 0;
+    wmove(chan->main_win, i, 0);
+    do {
+        if (substr) {
+            int blen = bytelen(substr[subidx]);
+            waddnstr(chan->main_win, substr + subidx, blen);
+            if (!substr[subidx += blen]) {
+                free(substr);
+                substr = NULL;
+                subidx = 0;
+                wattroff(chan->main_win, COLOR_PAIR(2));
+            }
+        } else {
+            if (!chan->submission_fs[idx]) {
+                waddch(chan->main_win, ' ');
+            } else if (chan->submission_fs[idx] == '%') {
+                switch (chan->submission_fs[++idx]) {
+                    case 's':
+                        substr = malloc(5);
+                        snprintf(substr, 5, "%4d", submission.score);
+                        if (submission.voted) {
+                            wattron(chan->main_win, COLOR_PAIR(2));
+                        }
+                        break;
+                    case 'a':
+                        substr = malloc(4);
+                        snprintf(substr, 4, "%3s", submission.age);
+                        break;
+                    case 'c':
+                        substr = malloc(4);
+                        snprintf(substr, 4, "%3d", submission.ncomments);
+                        break;
+                    case 't':
+                        substr = malloc(strlen(submission.title) + 1);
+                        strcpy(substr, submission.title);
+                        break;
+                    case '%':
+                        waddch(chan->main_win, '%');
+                        break;
+                    default:
+                        waddch(chan->main_win, '%');
+                        --idx;
+                        break;
+                }
+                ++idx;
+            } else {
+                int blen = bytelen(chan->submission_fs[idx]);
+                waddnstr(chan->main_win, chan->submission_fs + idx, blen);
+                idx += blen;
+            }
+        }
+        getyx(chan->main_win, y, x);
+    } while (y == i);
 }
 
 void chan_draw_submissions(struct chan *chan) {
