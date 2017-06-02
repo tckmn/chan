@@ -190,9 +190,9 @@ void draw_view_line(struct chan *chan, int y, int lineno) {
         wattrset(chan->main_win, 0);
         mvwaddnstr(chan->main_win, y, idx, line + idx, fmt->offset - idx);
         switch (fmt->type) {
-            case FMT_USER: wattrset(chan->main_win, A_BOLD | COLOR_PAIR(1)); break;
-            case FMT_AGE: wattrset(chan->main_win, A_BOLD | COLOR_PAIR(2)); break;
-            case FMT_URL: wattrset(chan->main_win, A_BOLD | COLOR_PAIR(3)); break;
+            case FMT_USER: wattrset(chan->main_win, A_BOLD | COLOR_PAIR(PAIR_MAGENTA)); break;
+            case FMT_AGE: wattrset(chan->main_win, A_BOLD | COLOR_PAIR(PAIR_YELLOW)); break;
+            case FMT_URL: wattrset(chan->main_win, A_BOLD | COLOR_PAIR(PAIR_BLUE)); break;
         }
         mvwaddnstr(chan->main_win, y, fmt->offset, line + fmt->offset, fmt->len);
 

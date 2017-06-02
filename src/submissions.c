@@ -95,7 +95,8 @@ void chan_update_submissions(struct chan *chan) {
 
 // does NOT call wrefresh()!
 void chan_redraw_submission(struct chan *chan, int i) {
-    wattrset(chan->main_win, i == chan->active_submission ? A_REVERSE : 0);
+    int normal_attr = i == chan->active_submission ? A_REVERSE : 0;
+    wattrset(chan->main_win, normal_attr);
     struct submission submission = chan->submissions[i];
 
     int y, x;
@@ -110,7 +111,8 @@ void chan_redraw_submission(struct chan *chan, int i) {
                 free(substr);
                 substr = NULL;
                 subidx = 0;
-                wattroff(chan->main_win, COLOR_PAIR(2));
+                wattron(chan->main_win, COLOR_PAIR(PAIR_WHITE));
+                wattrset(chan->main_win, normal_attr);
             }
         } else {
             if (!chan->submission_fs[idx]) {
@@ -124,7 +126,7 @@ void chan_redraw_submission(struct chan *chan, int i) {
                         } else {
                             snprintf(substr, 5, "%4d", submission.score);
                             if (submission.voted) {
-                                wattron(chan->main_win, COLOR_PAIR(2));
+                                wattron(chan->main_win, A_BOLD | COLOR_PAIR(PAIR_GREEN));
                             }
                         }
                         break;

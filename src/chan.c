@@ -31,9 +31,13 @@ struct chan *chan_init(int argc, char **argv) {
     noecho();
     curs_set(0);
     start_color();
-    init_pair(1, COLOR_RED, COLOR_BLACK);
-    init_pair(2, COLOR_GREEN, COLOR_BLACK);
-    init_pair(3, COLOR_BLUE, COLOR_BLACK);
+    init_pair(PAIR_RED,     COLOR_RED,     COLOR_BLACK);
+    init_pair(PAIR_GREEN,   COLOR_GREEN,   COLOR_BLACK);
+    init_pair(PAIR_YELLOW,  COLOR_YELLOW,  COLOR_BLACK);
+    init_pair(PAIR_BLUE,    COLOR_BLUE,    COLOR_BLACK);
+    init_pair(PAIR_MAGENTA, COLOR_MAGENTA, COLOR_BLACK);
+    init_pair(PAIR_CYAN,    COLOR_CYAN,    COLOR_BLACK);
+    init_pair(PAIR_WHITE,   COLOR_WHITE,   COLOR_BLACK);
 
     chan->main_win = newwin(chan->main_lines = LINES - 1,
             chan->main_cols = COLS, 0, 0);
