@@ -108,6 +108,13 @@ void chan_update_comments(struct chan *chan) {
         data = jumpquot(strstr(data, "width"), 1);
         comments[idx].depth = atoi(data) / 40;
 
+        char *auth = strstr(data, "auth=");
+        comments[idx].voted = 0;
+        if (auth && auth < jumpch(data, '\n', 1)) {
+            copyuntil(&comments[idx].auth, auth + strlen("auth="), '&');
+            if (!strncmp(jumpapos(auth, 2), "nosee", 5)) comments[idx].voted = 1;
+        } else comments[idx].auth = NULL;
+
         data = jumptag(strstr(data, "hnuser"), 1);
         // HN colors new users in green with <font></font>
         // take that into account

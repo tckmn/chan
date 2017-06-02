@@ -55,6 +55,8 @@ struct submission {
 struct comment {
     int id;
     int depth;
+    char *auth;
+    int voted;
     char *user;
     char *age;
     int badness;
