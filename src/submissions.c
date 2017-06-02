@@ -171,6 +171,7 @@ void chan_draw_submissions(struct chan *chan) {
     wrefresh(chan->main_win);
 }
 
+#define ACTIVE chan->submissions[chan->active_submission]
 int chan_submissions_key(struct chan *chan, int ch) {
     switch (ch) {
         case 'j':
@@ -193,7 +194,7 @@ int chan_submissions_key(struct chan *chan, int ch) {
             chan_login_init(chan);
             return 1;
         case 'o':
-            urlopen(chan->submissions[chan->active_submission].url);
+            urlopen(ACTIVE.url);
             return 1;
         case 'r':
             chan_update_submissions(chan);
@@ -201,21 +202,16 @@ int chan_submissions_key(struct chan *chan, int ch) {
             return 1;
         case 'u':
             if (chan->authenticated) {
-                if (chan->submissions[chan->active_submission].voted) {
-                    // TODO unvote
-                } else {
-                    char *buf = malloc(100);
-                    sprintf(buf, "https://news.ycombinator.com/vote?id=%d&how=up&auth=%s",
-                            chan->submissions[chan->active_submission].id,
-                            chan->submissions[chan->active_submission].auth);
-                    http(chan->curl, buf, NULL, 0);
-                    free(buf);
+                char *buf = malloc(100);
+                sprintf(buf, "https://news.ycombinator.com/vote?id=%d&how=u%c&auth=%s",
+                        ACTIVE.id, ACTIVE.voted ? 'n' : 'p', ACTIVE.auth);
+                http(chan->curl, buf, NULL, 0);
+                free(buf);
 
-                    chan->submissions[chan->active_submission].voted = 1;
-                    ++chan->submissions[chan->active_submission].score;
-                    chan_redraw_submission(chan, chan->active_submission);
-                    wrefresh(chan->main_win);
-                }
+                ACTIVE.voted = 1 - ACTIVE.voted;
+                ACTIVE.score += ACTIVE.voted ? 1 : -1;
+                chan_redraw_submission(chan, chan->active_submission);
+                wrefresh(chan->main_win);
             } else {
                 wclear(chan->status_win);
                 mvwaddstr(chan->status_win, 0, 0, "You must be authenticated to do that.");
