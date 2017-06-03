@@ -275,6 +275,11 @@ void chan_draw_comments(struct chan *chan) {
     wrefresh(chan->main_win);
 }
 
+// a comment consists of all the lines [start,stop)
+#define OFFSET_START(idx) (chan->comment_offsets[(idx)])
+#define OFFSET_STOP(idx) ((idx) == chan->viewing->ncomments - 1 ? \
+        chan->view_lines : chan->comment_offsets[(idx) + 1] - 1)
+
 void redraw_active_col(struct chan *chan, int idx) {
     // either clear or draw the active indicator depending on which comment
     // the redraw is requested on
@@ -283,9 +288,8 @@ void redraw_active_col(struct chan *chan, int idx) {
     wattrset(chan->main_win, 0);
 
     // find the bounds on the comment itself
-    int start = chan->comment_offsets[idx];
-    int stop = idx == chan->viewing->ncomments - 1 ? chan->view_lines :
-        chan->comment_offsets[idx + 1] - 1;
+    int start = OFFSET_START(idx);
+    int stop = OFFSET_STOP(idx);
 
     // translate to screen coordinates
     start -= chan->view_scroll;
@@ -342,9 +346,7 @@ int chan_comments_key(struct chan *chan, int ch) {
 
                 // check to see whether we just scrolled the active comment
                 // out of view
-                if (chan->active_comment != chan->viewing->ncomments - 1 &&
-                        chan->comment_offsets[chan->active_comment + 1] - 1 <=
-                            chan->view_scroll) {
+                if (OFFSET_STOP(chan->active_comment) <= chan->view_scroll) {
                     redraw_active_col(chan, ++chan->active_comment);
                 }
 
@@ -360,8 +362,7 @@ int chan_comments_key(struct chan *chan, int ch) {
 
                 // as in 'j', check to see whether the active comment was
                 // scrolled away
-                if (chan->active_comment != 0 &&
-                        chan->comment_offsets[chan->active_comment] + 1 >=
+                if (OFFSET_START(chan->active_comment) + 1 >=
                             chan->view_scroll + chan->main_lines) {
                     redraw_active_col(chan, --chan->active_comment);
                 }
