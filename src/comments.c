@@ -407,7 +407,7 @@ int chan_comments_key(struct chan *chan, int ch) {
 
                 // as in 'j', check to see whether the active comment was
                 // scrolled away
-                if (OFFSET_START(chan->active_comment) >= VIEW_BOTTOM) {
+                if (OFFSET_START(chan->active_comment) > VIEW_BOTTOM) {
                     redraw_active_col(chan, --chan->active_comment);
                 }
                 wrefresh(chan->main_win);
