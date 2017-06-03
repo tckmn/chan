@@ -213,7 +213,7 @@ void draw_view_line(struct chan *chan, int y, int lineno) {
     if (num == chan->active_comment) {
         int colpos = chan->viewing->comments[chan->active_comment].depth * 2;
         wattron(chan->main_win, COLOR_PAIR(PAIR_CYAN_BG));
-        mvwaddstr(chan->main_win, y, colpos, " ");
+        mvwaddch(chan->main_win, y, colpos, ' ');
     }
 }
 
@@ -277,6 +277,18 @@ void chan_draw_comments(struct chan *chan) {
     wrefresh(chan->main_win);
 }
 
+void redraw_active_col(struct chan *chan, int startpos, int step) {
+    int num = chan->view_buf_nums[chan->view_scroll + startpos];
+    int active = num == chan->active_comment;
+    wattron(chan->main_win, COLOR_PAIR(active ? PAIR_CYAN_BG : PAIR_WHITE));
+    wattrset(chan->main_win, 0);
+
+    for (int i = startpos; 0 <= i && i < chan->main_lines; i += step) {
+        if (chan->view_buf_nums[chan->view_scroll + i] == -1) break;
+        mvwaddch(chan->main_win, i, chan->viewing->comments[num].depth * 2, ' ');
+    }
+}
+
 int chan_comments_key(struct chan *chan, int ch) {
     if ((ch >= '0' && ch <= '9') || ch == '\x7f') {
         wclear(chan->status_win);
@@ -315,6 +327,14 @@ int chan_comments_key(struct chan *chan, int ch) {
                 wscrl(chan->main_win, 1);
                 draw_view_line(chan, chan->main_lines - 1,
                         chan->view_scroll + chan->main_lines - 1);
+
+                // check to see whether we just scrolled the active comment
+                // out of view
+                if (chan->view_buf_nums[chan->view_scroll] == -1 &&
+                        chan->view_buf_nums[chan->view_scroll - 1] == chan->active_comment) {
+                    ++chan->active_comment;
+                    redraw_active_col(chan, 1, 1);
+                }
                 wrefresh(chan->main_win);
             }
             return 1;
@@ -323,6 +343,14 @@ int chan_comments_key(struct chan *chan, int ch) {
                 --chan->view_scroll;
                 wscrl(chan->main_win, -1);
                 draw_view_line(chan, 0, chan->view_scroll);
+
+                // as in 'j', check to see whether the active comment was
+                // scrolled away
+                if (chan->view_buf_nums[chan->view_scroll + chan->main_lines - 1] == -1 &&
+                        chan->view_buf_nums[chan->view_scroll + chan->main_lines] == chan->active_comment) {
+                    --chan->active_comment;
+                    redraw_active_col(chan, chan->main_lines - 2, -1);
+                }
                 wrefresh(chan->main_win);
             }
             return 1;
