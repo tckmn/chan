@@ -426,7 +426,7 @@ int chan_comments_key(struct chan *chan, int ch) {
         case 'N':
             for (int d = chan->viewing->comments[chan->active_comment].depth,
                     i = chan->active_comment + 1;
-                    i < chan->viewing->ncomments - 1; ++i) {
+                    i < chan->viewing->ncomments; ++i) {
                 if (chan->viewing->comments[i].depth == d) {
                     set_active_comment(chan, i);
                     break;
@@ -438,7 +438,7 @@ int chan_comments_key(struct chan *chan, int ch) {
         case 'P':
             for (int d = chan->viewing->comments[chan->active_comment].depth,
                     i = chan->active_comment - 1;
-                    i > 0; --i) {
+                    i >= 0; --i) {
                 if (chan->viewing->comments[i].depth == d) {
                     set_active_comment(chan, i);
                     break;
