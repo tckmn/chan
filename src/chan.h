@@ -34,8 +34,10 @@ struct chan {
     struct submission *viewing;
     char **view_buf;
     struct fmt **view_buf_fmt;
+    int *view_buf_nums;
     int view_lines;
     int view_scroll;
+    int active_comment;
     char view_urlnbuf[VIEW_URLNBUF_LEN];
     char *username;
     char *password;

@@ -158,7 +158,7 @@ void add_view_fmt(struct chan *chan, int type, int offset, int len) {
     }
 }
 
-void add_view_line(struct chan *chan, char *str, int len, int indent) {
+void add_view_line(struct chan *chan, int num, char *str, int len, int indent) {
     char *line = malloc(len + indent + 1);
     memset(line, ' ', indent);
     strncpy(line + indent, str, len);
@@ -172,6 +172,10 @@ void add_view_line(struct chan *chan, char *str, int len, int indent) {
             chan->view_lines * sizeof *chan->view_buf_fmt);
     chan->view_buf_fmt[chan->view_lines - 1] = NULL;
 
+    chan->view_buf_nums = realloc(chan->view_buf_nums,
+            chan->view_lines * sizeof *chan->view_buf_nums);
+    chan->view_buf_nums[chan->view_lines - 1] = num;
+
     // fix \x01 markers for URLs and add their formatting
     for (int i = 0; line[i]; ++i) {
         if (line[i] == 1) {
@@ -184,6 +188,7 @@ void add_view_line(struct chan *chan, char *str, int len, int indent) {
 void draw_view_line(struct chan *chan, int y, int lineno) {
     char *line = chan->view_buf[lineno];
     struct fmt *fmt = chan->view_buf_fmt[lineno];
+    int num = chan->view_buf_nums[lineno];
     int idx = 0;
 
     while (fmt) {
@@ -204,6 +209,12 @@ void draw_view_line(struct chan *chan, int y, int lineno) {
     wattron(chan->main_win, COLOR_PAIR(PAIR_WHITE));
     wattrset(chan->main_win, 0);
     mvwaddstr(chan->main_win, y, idx, line + idx);
+
+    if (num == chan->active_comment) {
+        int colpos = chan->viewing->comments[chan->active_comment].depth * 2;
+        wattron(chan->main_win, COLOR_PAIR(PAIR_CYAN_BG));
+        mvwaddstr(chan->main_win, y, colpos, " ");
+    }
 }
 
 void chan_draw_comments(struct chan *chan) {
@@ -212,7 +223,7 @@ void chan_draw_comments(struct chan *chan) {
     // TODO unicode support
     for (int i = 0; i < chan->viewing->ncomments; ++i) {
         struct comment comment = chan->viewing->comments[i];
-        int lastspace = 0, breakidx = 0, indent = comment.depth * 2,
+        int lastspace = 0, breakidx = 0, indent = comment.depth * 2 + 1,
             linewidth = chan->main_cols - indent;
 
         char *head = malloc(linewidth + 1);
@@ -222,7 +233,7 @@ void chan_draw_comments(struct chan *chan) {
             strncat(head, "  -x ", linewidth - hlen);
             if (hlen + 3 < linewidth) head[hlen + 3] = '0' + comment.badness;
         }
-        add_view_line(chan, head, linewidth, indent);
+        add_view_line(chan, i, head, linewidth, indent);
         int ulen = strlen(comment.user), alen = strlen(comment.age);
         add_view_fmt(chan, FMT_USER, indent, ulen);
         add_view_fmt(chan, FMT_AGE, indent + ulen + 2, alen);
@@ -234,26 +245,31 @@ void chan_draw_comments(struct chan *chan) {
         for (int j = 0; j < strlen(comment.text); ++j) {
             if (j - breakidx >= linewidth) {
                 if (lastspace) {
-                    add_view_line(chan, comment.text + breakidx, lastspace, indent);
+                    add_view_line(chan, i, comment.text + breakidx,
+                            lastspace, indent);
                     breakidx += lastspace + 1;
                     lastspace = 0;
                 } else {
-                    add_view_line(chan, comment.text + breakidx, linewidth, indent);
+                    add_view_line(chan, i, comment.text + breakidx,
+                            linewidth, indent);
                     breakidx += linewidth;
                 }
             } else if (comment.text[j] == ' ') {
                 lastspace = j - breakidx;
             } else if (comment.text[j] == '\n') {
-                add_view_line(chan, comment.text + breakidx, j - breakidx, indent);
+                add_view_line(chan, i, comment.text + breakidx,
+                        j - breakidx, indent);
                 lastspace = 0;
                 breakidx = j + 1;
             }
         }
-        add_view_line(chan, comment.text + breakidx, linewidth, indent);
-        add_view_line(chan, "", 0, 0);
+        add_view_line(chan, i, comment.text + breakidx,
+                linewidth, indent);
+        add_view_line(chan, -1, "", 0, 0);
     }
 
     chan->view_scroll = 0;
+    chan->active_comment = 0;
     for (int i = 0; i < chan->view_lines && i < chan->main_lines; ++i) {
         draw_view_line(chan, i, i);
     }
@@ -328,6 +344,8 @@ int chan_comments_key(struct chan *chan, int ch) {
             chan->view_buf = NULL;
             free(chan->view_buf_fmt);
             chan->view_buf_fmt = NULL;
+            free(chan->view_buf_nums);
+            chan->view_buf_nums = NULL;
             chan->view_lines = 0;
             chan->view_scroll = 0;
             chan->view_urlnbuf[0] = '\0';
