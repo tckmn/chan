@@ -236,6 +236,15 @@ void add_view_line(struct chan *chan, char *str, int len, int indent) {
     }
 }
 
+// a comment consists of all the lines [start,stop)
+#define OFFSET_START(idx) (chan->com.offsets[(idx)])
+#define OFFSET_STOP(idx) (((idx) == chan->com.sub->ncoms - 1 ? \
+        chan->com.lines : chan->com.offsets[(idx) + 1]) - 1)
+
+// top and bottom of the displayed screen
+#define VIEW_TOP (chan->com.scroll)
+#define VIEW_BOTTOM (chan->com.scroll + chan->main_lines - 1)
+
 /*
  * draw a single line from the display buffer
  *
@@ -271,9 +280,8 @@ void draw_view_line(struct chan *chan, int y, int lineno) {
     mvwaddstr(chan->main_win, y, idx, line + idx);
 
     // draw the column representing the active comment, if applicable
-    if (lineno >= chan->com.offsets[chan->com.active] &&
-            (chan->com.active == chan->com.sub->ncoms - 1 ||
-             lineno < chan->com.offsets[chan->com.active + 1] - 1)) {
+    if (lineno >= OFFSET_START(chan->com.active) &&
+            lineno < OFFSET_STOP(chan->com.active)) {
         int colpos = chan->com.sub->coms[chan->com.active].depth * 2;
         wattron(chan->main_win, COLOR_PAIR(PAIR_CYAN_BG));
         mvwaddch(chan->main_win, y, colpos, ' ');
@@ -359,15 +367,6 @@ void chan_draw_comments(struct chan *chan) {
 
     wrefresh(chan->main_win);
 }
-
-// a comment consists of all the lines [start,stop)
-#define OFFSET_START(idx) (chan->com.offsets[(idx)])
-#define OFFSET_STOP(idx) (((idx) == chan->com.sub->ncoms - 1 ? \
-        chan->com.lines : chan->com.offsets[(idx) + 1]) - 1)
-
-// top and bottom of the displayed screen
-#define VIEW_TOP (chan->com.scroll)
-#define VIEW_BOTTOM (chan->com.scroll + chan->main_lines - 1)
 
 /*
  * scroll the view by 'amount' lines (can be negative to scroll up)
