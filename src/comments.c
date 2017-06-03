@@ -277,8 +277,8 @@ void chan_draw_comments(struct chan *chan) {
 
 // a comment consists of all the lines [start,stop)
 #define OFFSET_START(idx) (chan->comment_offsets[(idx)])
-#define OFFSET_STOP(idx) ((idx) == chan->viewing->ncomments - 1 ? \
-        chan->view_lines : chan->comment_offsets[(idx) + 1] - 1)
+#define OFFSET_STOP(idx) (((idx) == chan->viewing->ncomments - 1 ? \
+        chan->view_lines : chan->comment_offsets[(idx) + 1]) - 1)
 
 // top and bottom of the displayed screen
 #define VIEW_TOP (chan->view_scroll)
