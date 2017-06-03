@@ -20,25 +20,32 @@
 #define PAIR_CYAN_BG    13
 #define PAIR_WHITE_BG   14
 
-#define VIEW_URLNBUF_LEN 4
+#define URLNBUF_LEN 4
 struct chan {
     CURL *curl;
     WINDOW *main_win;
     int main_lines;
     int main_cols;
     WINDOW *status_win;
-    struct submission *submissions;
-    int nsubmissions;
-    int active_submission;
-    char *submission_fs;
-    struct submission *viewing;
-    char **view_buf;
-    struct fmt **view_buf_fmt;
-    int view_lines;
-    int view_scroll;
-    int active_comment;
-    int *comment_offsets;
-    char view_urlnbuf[VIEW_URLNBUF_LEN];
+
+    struct {
+        struct sub *subs;
+        int nsubs;
+        int active;
+        char *fmt_str;
+    } sub;
+
+    struct {
+        struct sub *sub;
+        char **buf;
+        struct fmt **buf_fmt;
+        int lines;
+        int scroll;
+        int active;
+        int *offsets;
+        char urlnbuf[URLNBUF_LEN];
+    } com;
+
     char *username;
     char *password;
     int authenticated;
@@ -55,7 +62,7 @@ struct fmt {
     struct fmt *next;
 };
 
-struct submission {
+struct sub {
     int id;
     char *auth;
     int voted;
@@ -65,13 +72,13 @@ struct submission {
     int score;
     char *user;
     char *age;
-    struct comment *comments;
-    int ncomments;
+    struct com *coms;
+    int ncoms;
     char **urls;
     int nurls;
 };
 
-struct comment {
+struct com {
     int id;
     int depth;
     char *auth;

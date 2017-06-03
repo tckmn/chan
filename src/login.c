@@ -18,11 +18,15 @@ void chan_login_init(struct chan *chan) {
 
 int addkey(struct chan *chan, char **str, int ch) {
     if (' ' <= ch && ch <= '~') {
+        // printable ASCII, interpret as input
+
+        // don't echo input if typing password
         if (!chan->password) {
             waddch(chan->status_win, ch);
             wrefresh(chan->status_win);
         }
 
+        // append to buffer
         int oldlen = strlen(*str);
         *str = realloc(*str, oldlen + 2);
         (*str)[oldlen] = ch;
@@ -41,6 +45,7 @@ int addkey(struct chan *chan, char **str, int ch) {
         return 1;
     } else if (ch == '\n') {
         if (chan->password) {
+            // submitting password - attempt auth
             int success = auth(chan->curl, chan->username, chan->password);
 
             free(chan->username);
@@ -61,6 +66,7 @@ int addkey(struct chan *chan, char **str, int ch) {
 
             curs_set(0);
         } else {
+            // submitting username - request password
             chan->password = malloc(1);
             chan->password[0] = '\0';
 
@@ -73,6 +79,9 @@ int addkey(struct chan *chan, char **str, int ch) {
     } else return 0;
 }
 
+/*
+ * called on every keypress while authenticating
+ */
 int chan_login_key(struct chan *chan, int ch) {
     return addkey(chan, chan->password ? &chan->password : &chan->username, ch);
 }

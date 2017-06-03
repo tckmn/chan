@@ -63,7 +63,7 @@ void chan_main_loop(struct chan *chan) {
     while ((ch = getch())) {
         int handled;
         if (chan->username)     handled = chan_login_key(chan, ch);
-        else if (chan->viewing) handled = chan_comments_key(chan, ch);
+        else if (chan->com.sub) handled = chan_comments_key(chan, ch);
         else                    handled = chan_submissions_key(chan, ch);
 
         // global keybinds

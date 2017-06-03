@@ -4,6 +4,8 @@
 #include <string.h>
 #include <stdio.h>
 
+// TODO fallback if no xdg-utils
+// TODO cross platform
 void urlopen(const char *url) {
     char *cmd = malloc(strlen(url) + 12);
     sprintf(cmd, "xdg-open '%s'", url);

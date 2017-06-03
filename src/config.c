@@ -69,7 +69,7 @@ int config_from_file(struct chan *chan, char *path, int overwrite) {
 int chan_config(struct chan *chan, int argc, char **argv) {
     int used_file = 0, parse_options = 1;
     int help = 0, version = 0;
-    chan->submission_fs = "%s %a %c %t";
+    chan->sub.fmt_str = "%s %a %c %t";
 
     // parse arguments
     for (int i = 1; i < argc; ++i) {
@@ -78,6 +78,7 @@ int chan_config(struct chan *chan, int argc, char **argv) {
 
             if (argv[i][1] == '-') {
                 if (argv[i][2]) {
+                    // --thing, parse as long argument
                     char *longarg = argv[i] + 2, *eqpos;
                     if (!strcmp(longarg, "help")) {
                         help = 1;
@@ -107,6 +108,7 @@ int chan_config(struct chan *chan, int argc, char **argv) {
                     parse_options = 0;
                 }
             } else {
+                // -xyz, parse as short option(s)
                 for (char *c = argv[i] + 1; *c; ++c) {
                     switch (*c) {
                         case 'h':
@@ -138,6 +140,7 @@ int chan_config(struct chan *chan, int argc, char **argv) {
                 strcpy(*stroptdest, ptr);
             }
         } else {
+            // bare argument, parse as config file path
             used_file = 1;
             int res = config_from_file(chan, argv[i], 1);
             if (res) return res;
