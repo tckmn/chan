@@ -280,6 +280,10 @@ void chan_draw_comments(struct chan *chan) {
 #define OFFSET_STOP(idx) ((idx) == chan->viewing->ncomments - 1 ? \
         chan->view_lines : chan->comment_offsets[(idx) + 1] - 1)
 
+// top and bottom of the displayed screen
+#define VIEW_TOP (chan->view_scroll)
+#define VIEW_BOTTOM (chan->view_scroll + chan->main_lines - 1)
+
 void redraw_active_col(struct chan *chan, int idx) {
     // either clear or draw the active indicator depending on which comment
     // the redraw is requested on
@@ -292,8 +296,8 @@ void redraw_active_col(struct chan *chan, int idx) {
     int stop = OFFSET_STOP(idx);
 
     // translate to screen coordinates
-    start -= chan->view_scroll;
-    stop -= chan->view_scroll;
+    start -= VIEW_TOP;
+    stop -= VIEW_TOP;
 
     // clamp the bounds such that they're on the screen
     start = start < 0 ? 0 : start;
@@ -338,15 +342,14 @@ int chan_comments_key(struct chan *chan, int ch) {
             wrefresh(chan->status_win);
             return 1;
         case 'j':
-            if (chan->view_scroll + chan->main_lines < chan->view_lines - 1) {
+            if (VIEW_BOTTOM < chan->view_lines - 1) {
                 ++chan->view_scroll;
                 wscrl(chan->main_win, 1);
-                draw_view_line(chan, chan->main_lines - 1,
-                        chan->view_scroll + chan->main_lines - 1);
+                draw_view_line(chan, chan->main_lines - 1, VIEW_BOTTOM);
 
                 // check to see whether we just scrolled the active comment
                 // out of view
-                if (OFFSET_STOP(chan->active_comment) <= chan->view_scroll) {
+                if (OFFSET_STOP(chan->active_comment) <= VIEW_TOP) {
                     redraw_active_col(chan, ++chan->active_comment);
                 }
 
@@ -354,16 +357,15 @@ int chan_comments_key(struct chan *chan, int ch) {
             }
             return 1;
         case 'k':
-            if (chan->view_scroll > 0) {
+            if (VIEW_TOP > 0) {
                 --chan->view_scroll;
                 wscrl(chan->main_win, -1);
-                draw_view_line(chan, 0, chan->view_scroll);
+                draw_view_line(chan, 0, VIEW_TOP);
                 wrefresh(chan->main_win);
 
                 // as in 'j', check to see whether the active comment was
                 // scrolled away
-                if (OFFSET_START(chan->active_comment) + 1 >=
-                            chan->view_scroll + chan->main_lines) {
+                if (OFFSET_START(chan->active_comment) >= VIEW_BOTTOM) {
                     redraw_active_col(chan, --chan->active_comment);
                 }
             }
