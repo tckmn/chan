@@ -284,6 +284,22 @@ void chan_draw_comments(struct chan *chan) {
 #define VIEW_TOP (chan->view_scroll)
 #define VIEW_BOTTOM (chan->view_scroll + chan->main_lines - 1)
 
+// WARNING: THIS DOES NO BOUNDS CHECKS!
+void scroll_view(struct chan *chan, int amount) {
+    chan->view_scroll += amount;
+    wscrl(chan->main_win, amount);
+    if (amount > 0) {
+        for (int i = 1; i <= amount; ++i) {
+            draw_view_line(chan, chan->main_lines - i, VIEW_BOTTOM - i + 1);
+        }
+    } else {
+        for (int i = 1; i <= -amount; ++i) {
+            draw_view_line(chan, i - 1, VIEW_TOP + i - 1);
+        }
+    }
+}
+#define scroll_view_abs(chan,x) scroll_view((chan), (x) - chan->view_scroll)
+
 void redraw_active_col(struct chan *chan, int idx) {
     // either clear or draw the active indicator depending on which comment
     // the redraw is requested on
@@ -307,6 +323,9 @@ void redraw_active_col(struct chan *chan, int idx) {
     for (int i = start; i < stop; ++i) {
         mvwaddch(chan->main_win, i, chan->viewing->comments[idx].depth * 2, ' ');
     }
+
+    // be nice to later ncurses calls
+    wattron(chan->main_win, COLOR_PAIR(PAIR_WHITE));
 }
 
 int chan_comments_key(struct chan *chan, int ch) {
@@ -343,9 +362,7 @@ int chan_comments_key(struct chan *chan, int ch) {
             return 1;
         case 'j':
             if (VIEW_BOTTOM < chan->view_lines - 1) {
-                ++chan->view_scroll;
-                wscrl(chan->main_win, 1);
-                draw_view_line(chan, chan->main_lines - 1, VIEW_BOTTOM);
+                scroll_view(chan, 1);
 
                 // check to see whether we just scrolled the active comment
                 // out of view
@@ -358,16 +375,49 @@ int chan_comments_key(struct chan *chan, int ch) {
             return 1;
         case 'k':
             if (VIEW_TOP > 0) {
-                --chan->view_scroll;
-                wscrl(chan->main_win, -1);
-                draw_view_line(chan, 0, VIEW_TOP);
-                wrefresh(chan->main_win);
+                scroll_view(chan, -1);
 
                 // as in 'j', check to see whether the active comment was
                 // scrolled away
                 if (OFFSET_START(chan->active_comment) >= VIEW_BOTTOM) {
                     redraw_active_col(chan, --chan->active_comment);
                 }
+                wrefresh(chan->main_win);
+            }
+            return 1;
+        case 'n':
+            if (chan->active_comment < chan->viewing->ncomments - 1) {
+                ++chan->active_comment;
+
+                // get as much of the newly focused comment on screen as
+                // possible (ideally, all of it)
+                if (OFFSET_STOP(chan->active_comment) > VIEW_BOTTOM) {
+                    int new_scroll = OFFSET_STOP(chan->active_comment) -
+                        chan->main_lines;
+                    // don't scroll past the beginning, though
+                    if (new_scroll > OFFSET_START(chan->active_comment)) {
+                        new_scroll = OFFSET_START(chan->active_comment);
+                    }
+                    scroll_view_abs(chan, new_scroll);
+                }
+
+                redraw_active_col(chan, chan->active_comment - 1);
+                redraw_active_col(chan, chan->active_comment);
+                wrefresh(chan->main_win);
+            }
+            return 1;
+        case 'p':
+            if (chan->active_comment > 0) {
+                --chan->active_comment;
+
+                // same deal as with 'n'
+                if (OFFSET_START(chan->active_comment) < VIEW_TOP) {
+                    scroll_view_abs(chan, OFFSET_START(chan->active_comment));
+                }
+
+                redraw_active_col(chan, chan->active_comment + 1);
+                redraw_active_col(chan, chan->active_comment);
+                wrefresh(chan->main_win);
             }
             return 1;
         case 'o':
