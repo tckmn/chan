@@ -38,6 +38,13 @@ struct chan *chan_init(int argc, char **argv) {
     init_pair(PAIR_MAGENTA, COLOR_MAGENTA, COLOR_BLACK);
     init_pair(PAIR_CYAN,    COLOR_CYAN,    COLOR_BLACK);
     init_pair(PAIR_WHITE,   COLOR_WHITE,   COLOR_BLACK);
+    init_pair(PAIR_RED_BG,     COLOR_BLACK, COLOR_RED);
+    init_pair(PAIR_GREEN_BG,   COLOR_BLACK, COLOR_GREEN);
+    init_pair(PAIR_YELLOW_BG,  COLOR_BLACK, COLOR_YELLOW);
+    init_pair(PAIR_BLUE_BG,    COLOR_BLACK, COLOR_BLUE);
+    init_pair(PAIR_MAGENTA_BG, COLOR_BLACK, COLOR_MAGENTA);
+    init_pair(PAIR_CYAN_BG,    COLOR_BLACK, COLOR_CYAN);
+    init_pair(PAIR_WHITE_BG,   COLOR_BLACK, COLOR_WHITE);
 
     chan->main_win = newwin(chan->main_lines = LINES - 1,
             chan->main_cols = COLS, 0, 0);

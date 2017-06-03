@@ -187,18 +187,21 @@ void draw_view_line(struct chan *chan, int y, int lineno) {
     int idx = 0;
 
     while (fmt) {
+        wattron(chan->main_win, COLOR_PAIR(PAIR_WHITE));
         wattrset(chan->main_win, 0);
         mvwaddnstr(chan->main_win, y, idx, line + idx, fmt->offset - idx);
         switch (fmt->type) {
-            case FMT_USER: wattrset(chan->main_win, A_BOLD | COLOR_PAIR(PAIR_MAGENTA)); break;
-            case FMT_AGE: wattrset(chan->main_win, A_BOLD | COLOR_PAIR(PAIR_YELLOW)); break;
-            case FMT_URL: wattrset(chan->main_win, A_BOLD | COLOR_PAIR(PAIR_BLUE)); break;
+            case FMT_USER: wattron(chan->main_win, A_BOLD | COLOR_PAIR(PAIR_MAGENTA)); break;
+            case FMT_AGE: wattron(chan->main_win, A_BOLD | COLOR_PAIR(PAIR_YELLOW)); break;
+            case FMT_URL: wattron(chan->main_win, A_BOLD | COLOR_PAIR(PAIR_BLUE)); break;
+            case FMT_BAD: wattron(chan->main_win, A_BOLD | COLOR_PAIR(PAIR_RED_BG)); break;
         }
         mvwaddnstr(chan->main_win, y, fmt->offset, line + fmt->offset, fmt->len);
 
         idx = fmt->offset + fmt->len;
         fmt = fmt->next;
     }
+    wattron(chan->main_win, COLOR_PAIR(PAIR_WHITE));
     wattrset(chan->main_win, 0);
     mvwaddstr(chan->main_win, y, idx, line + idx);
 }
@@ -214,9 +217,18 @@ void chan_draw_comments(struct chan *chan) {
 
         char *head = malloc(linewidth + 1);
         snprintf(head, linewidth + 1, "%s [%s]", comment.user, comment.age);
+        if (comment.badness) {
+            int hlen = strlen(head);
+            strncat(head, "  -x ", linewidth - hlen);
+            if (hlen + 3 < linewidth) head[hlen + 3] = '0' + comment.badness;
+        }
         add_view_line(chan, head, linewidth, indent);
-        add_view_fmt(chan, FMT_USER, indent, strlen(comment.user));
-        add_view_fmt(chan, FMT_AGE, indent + strlen(comment.user) + 2, strlen(comment.age));
+        int ulen = strlen(comment.user), alen = strlen(comment.age);
+        add_view_fmt(chan, FMT_USER, indent, ulen);
+        add_view_fmt(chan, FMT_AGE, indent + ulen + 2, alen);
+        if (comment.badness) {
+            add_view_fmt(chan, FMT_BAD, indent + ulen + 2 + alen + 2, 4);
+        }
         free(head);
 
         for (int j = 0; j < strlen(comment.text); ++j) {
