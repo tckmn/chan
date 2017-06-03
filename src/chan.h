@@ -55,7 +55,8 @@ struct chan {
 #define FMT_USER 0
 #define FMT_AGE  1
 #define FMT_URL  2
-#define FMT_BAD  3
+#define FMT_UP   3
+#define FMT_BAD  4
 struct fmt {
     int type;
     int offset;

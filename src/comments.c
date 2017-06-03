@@ -8,12 +8,22 @@
 #include <string.h>
 
 /*
+ * recursive linked list free for freeing fmt pointers
+ */
+void free_fmt(struct fmt *fmt) {
+    if (fmt) {
+        free_fmt(fmt->next);
+        free(fmt);
+    }
+}
+
+/*
  * free all the memory and zero everything related to displayed comments
  */
 void chan_destroy_comments(struct chan *chan) {
     for (int i = 0; i < chan->com.lines; ++i) {
         free(chan->com.buf[i]);
-        free(chan->com.buf_fmt[i]);
+        free_fmt(chan->com.buf_fmt[i]);
     }
     free(chan->com.buf);
     chan->com.buf = NULL;
@@ -189,34 +199,51 @@ void chan_update_comments(struct chan *chan) {
 }
 
 /*
- * add a single stretch of formatting to the line most recently added
+ * add a single stretch of formatting to the line at the specified index
  */
-void add_view_fmt(struct chan *chan, int type, int offset, int len) {
+void add_view_fmt_at(struct chan *chan, int type, int offset, int len, int idx) {
     struct fmt *fmt = malloc(sizeof *fmt);
     fmt->type = type;
     fmt->offset = offset;
     fmt->len = len;
     fmt->next = NULL;
 
-    if (chan->com.buf_fmt[chan->com.lines - 1]) {
+    if (chan->com.buf_fmt[idx]) {
         // there was already formatting, append to the linked list
-        struct fmt *node = chan->com.buf_fmt[chan->com.lines - 1];
+        struct fmt *node = chan->com.buf_fmt[idx];
         while (node->next) node = node->next;
         node->next = fmt;
     } else {
         // make the linked list
-        chan->com.buf_fmt[chan->com.lines - 1] = fmt;
+        chan->com.buf_fmt[idx] = fmt;
     }
+}
+
+/*
+ * same as above, but do it at the line most recently added
+ */
+void add_view_fmt(struct chan *chan, int type, int offset, int len) {
+    add_view_fmt_at(chan, type, offset, len, chan->com.lines - 1);
+}
+
+/*
+ * generate a line for display
+ *
+ * mostly just applies the indent requested
+ */
+char *make_view_line(struct chan *chan, char *str, int len, int indent) {
+    char *line = malloc(len + indent + 1);
+    memset(line, ' ', indent);
+    strncpy(line + indent, str, len);
+    line[len + indent] = '\0';
+    return line;
 }
 
 /*
  * add a line to the display buffer
  */
 void add_view_line(struct chan *chan, char *str, int len, int indent) {
-    char *line = malloc(len + indent + 1);
-    memset(line, ' ', indent);
-    strncpy(line + indent, str, len);
-    line[len + indent] = '\0';
+    char *line = make_view_line(chan, str, len, indent);
 
     // allocate space in each buffer and place the appropriate values into it
     chan->com.buf = realloc(chan->com.buf,
@@ -252,10 +279,16 @@ void add_view_line(struct chan *chan, char *str, int len, int indent) {
  *
  * this does NOT call wrefresh()!
  */
-void draw_view_line(struct chan *chan, int y, int lineno) {
+void draw_view_line(struct chan *chan, int lineno) {
+    int y = lineno - VIEW_TOP;
     char *line = chan->com.buf[lineno];
     struct fmt *fmt = chan->com.buf_fmt[lineno];
     int idx = 0;
+
+    // clear anything that might be already on this line
+    // this happens e.g. when redrawing headers after a vote
+    wmove(chan->main_win, y, 0);
+    wclrtoeol(chan->main_win);
 
     // draw everything up to and including the last formatting stretch
     while (fmt) {
@@ -266,6 +299,7 @@ void draw_view_line(struct chan *chan, int y, int lineno) {
             case FMT_USER: wattron(chan->main_win, A_BOLD | COLOR_PAIR(PAIR_MAGENTA)); break;
             case FMT_AGE: wattron(chan->main_win, A_BOLD | COLOR_PAIR(PAIR_YELLOW)); break;
             case FMT_URL: wattron(chan->main_win, A_BOLD | COLOR_PAIR(PAIR_BLUE)); break;
+            case FMT_UP: wattron(chan->main_win, A_BOLD | COLOR_PAIR(PAIR_GREEN_BG)); break;
             case FMT_BAD: wattron(chan->main_win, A_BOLD | COLOR_PAIR(PAIR_RED_BG)); break;
         }
         mvwaddnstr(chan->main_win, y, fmt->offset, line + fmt->offset, fmt->len);
@@ -289,6 +323,58 @@ void draw_view_line(struct chan *chan, int y, int lineno) {
 }
 
 /*
+ * render a comment header
+ *
+ * can be used for both the initial creation (i.e. during the process of
+ * building chan->com.buf) and updating the header later (e.g. when voting on a
+ * comment)
+ */
+void render_header(struct chan *chan, int idx) {
+    struct com com = chan->com.sub->coms[idx];
+    int indent = com.depth * 2 + 1, linewidth = chan->main_cols - indent,
+        lineno = chan->com.offsets[idx];
+
+    // build the string
+    char *head = malloc(linewidth + 1);
+    snprintf(head, linewidth + 1, "%s [%s]", com.user, com.age);
+    if (com.voted) {
+        int hlen = strlen(head);
+        strncat(head, " +", linewidth - hlen);
+    }
+    if (com.badness) {
+        int hlen = strlen(head);
+        strncat(head, "  -x ", linewidth - hlen);
+        if (hlen + 3 < linewidth) head[hlen + 3] = '0' + com.badness;
+    }
+
+    // append it if this is the first time we're generating the header;
+    // otherwise, modify the existing line
+    if (lineno == chan->com.lines) {
+        add_view_line(chan, head, linewidth, indent);
+    } else {
+        free(chan->com.buf[lineno]);
+        chan->com.buf[lineno] = make_view_line(chan, head, linewidth, indent);
+
+        // also clear the formatting so we can regenerate it
+        free_fmt(chan->com.buf_fmt[lineno]);
+        chan->com.buf_fmt[lineno] = NULL;
+    }
+
+    int ulen = strlen(com.user), alen = strlen(com.age);
+    add_view_fmt_at(chan, FMT_USER, indent, ulen, lineno);
+    add_view_fmt_at(chan, FMT_AGE, indent + ulen + 2, alen, lineno);
+    if (com.voted) {
+        add_view_fmt_at(chan, FMT_UP, indent + ulen + 2 + alen + 2, 1, lineno);
+    }
+    if (com.badness) {
+        add_view_fmt_at(chan, FMT_BAD, indent + ulen + 2 + alen + 2 +
+                (com.voted ? 2 : 0), 4, lineno);
+    }
+
+    free(head);
+}
+
+/*
  * render all parsed comments into the view buffer and draw the visible top
  * section
  */
@@ -303,58 +389,44 @@ void chan_draw_comments(struct chan *chan) {
 
     // TODO unicode support
     for (int i = 0; i < chan->com.sub->ncoms; ++i) {
-        struct com comment = chan->com.sub->coms[i];
-        int lastspace = 0, breakidx = 0, indent = comment.depth * 2 + 1,
+        struct com com = chan->com.sub->coms[i];
+        int lastspace = 0, breakidx = 0, indent = com.depth * 2 + 1,
             linewidth = chan->main_cols - indent;
 
         // save the position/line on which the comment starts
         chan->com.offsets[i] = chan->com.lines;
 
         // create and output a header
-        char *head = malloc(linewidth + 1);
-        snprintf(head, linewidth + 1, "%s [%s]", comment.user, comment.age);
-        if (comment.badness) {
-            int hlen = strlen(head);
-            strncat(head, "  -x ", linewidth - hlen);
-            if (hlen + 3 < linewidth) head[hlen + 3] = '0' + comment.badness;
-        }
-        add_view_line(chan, head, linewidth, indent);
-        int ulen = strlen(comment.user), alen = strlen(comment.age);
-        add_view_fmt(chan, FMT_USER, indent, ulen);
-        add_view_fmt(chan, FMT_AGE, indent + ulen + 2, alen);
-        if (comment.badness) {
-            add_view_fmt(chan, FMT_BAD, indent + ulen + 2 + alen + 2, 4);
-        }
-        free(head);
+        render_header(chan, i);
 
         // time to word wrap!
-        for (int j = 0; j < strlen(comment.text); ++j) {
+        for (int j = 0; j < strlen(com.text); ++j) {
             if (j - breakidx >= linewidth) {
                 // there are too many characters since we last broke a line
                 // so we have to break a line now
                 if (lastspace) {
                     // there has been a space; break at the most recent one
-                    add_view_line(chan, comment.text + breakidx, lastspace, indent);
+                    add_view_line(chan, com.text + breakidx, lastspace, indent);
                     breakidx += lastspace + 1;
                     lastspace = 0;
                 } else {
                     // there hasn't, so just cut the giant word in half
-                    add_view_line(chan, comment.text + breakidx, linewidth, indent);
+                    add_view_line(chan, com.text + breakidx, linewidth, indent);
                     breakidx += linewidth;
                 }
-            } else if (comment.text[j] == ' ') {
+            } else if (com.text[j] == ' ') {
                 // store the position of the most recent space for breaking
                 lastspace = j - breakidx;
-            } else if (comment.text[j] == '\n') {
+            } else if (com.text[j] == '\n') {
                 // newlines force a line break
-                add_view_line(chan, comment.text + breakidx, j - breakidx, indent);
+                add_view_line(chan, com.text + breakidx, j - breakidx, indent);
                 lastspace = 0;
                 breakidx = j + 1;
             }
         }
 
         // add the remaining (last) line
-        add_view_line(chan, comment.text + breakidx, linewidth, indent);
+        add_view_line(chan, com.text + breakidx, linewidth, indent);
         add_view_line(chan, "", 0, 0);
     }
 
@@ -363,7 +435,7 @@ void chan_draw_comments(struct chan *chan) {
     chan->com.scroll = 0;
     chan->com.active = 0;
     for (int i = 0; i < chan->com.lines && i < chan->main_lines; ++i) {
-        draw_view_line(chan, i, i);
+        draw_view_line(chan, i);
     }
 
     wrefresh(chan->main_win);
@@ -382,12 +454,12 @@ void scroll_view(struct chan *chan, int amount) {
     if (amount > 0) {
         // scrolling down, draw new lines at the bottom
         for (int i = 1; i <= amount; ++i) {
-            draw_view_line(chan, chan->main_lines - i, VIEW_BOTTOM - i + 1);
+            draw_view_line(chan, VIEW_BOTTOM - i + 1);
         }
     } else {
         // scrolling up, draw new lines at the top
         for (int i = 1; i <= -amount; ++i) {
-            draw_view_line(chan, i - 1, VIEW_TOP + i - 1);
+            draw_view_line(chan, VIEW_TOP + i - 1);
         }
     }
 }
@@ -462,6 +534,7 @@ void set_active_comment(struct chan *chan, int i) {
 /*
  * called on every keypress while viewing comments
  */
+#define ACTIVE chan->com.sub->coms[chan->com.active]
 int chan_comments_key(struct chan *chan, int ch) {
     if ((ch >= '0' && ch <= '9') || ch == '\x7f') {
         // a key that involves the URL number buffer
@@ -539,8 +612,7 @@ int chan_comments_key(struct chan *chan, int ch) {
             return 1;
 
         case 'N':
-            for (int d = chan->com.sub->coms[chan->com.active].depth,
-                    i = chan->com.active + 1;
+            for (int d = ACTIVE.depth, i = chan->com.active + 1;
                     i < chan->com.sub->ncoms; ++i) {
                 if (chan->com.sub->coms[i].depth == d) {
                     set_active_comment(chan, i);
@@ -552,9 +624,7 @@ int chan_comments_key(struct chan *chan, int ch) {
             return 1;
 
         case 'P':
-            for (int d = chan->com.sub->coms[chan->com.active].depth,
-                    i = chan->com.active - 1;
-                    i >= 0; --i) {
+            for (int d = ACTIVE.depth, i = chan->com.active - 1; i >= 0; --i) {
                 if (chan->com.sub->coms[i].depth == d) {
                     set_active_comment(chan, i);
                     break;
@@ -582,6 +652,26 @@ int chan_comments_key(struct chan *chan, int ch) {
 
             chan_draw_submissions(chan);
 
+            return 1;
+
+        case 'u':
+            if (chan->authenticated) {
+                char *buf = malloc(100);
+                sprintf(buf, "https://news.ycombinator.com/vote?id=%d&how=u%c&auth=%s",
+                        ACTIVE.id, ACTIVE.voted ? 'n' : 'p', ACTIVE.auth);
+                http(chan->curl, buf, NULL, 0);
+                free(buf);
+
+                ACTIVE.voted = 1 - ACTIVE.voted;
+                render_header(chan, chan->com.active);
+                draw_view_line(chan, chan->com.offsets[chan->com.active]);
+                wrefresh(chan->main_win);
+            } else {
+                wclear(chan->status_win);
+                mvwaddstr(chan->status_win, 0, 0,
+                        "You must be authenticated to do that.");
+                wrefresh(chan->status_win);
+            }
             return 1;
 
         default: return 0;
