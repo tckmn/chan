@@ -195,17 +195,27 @@ void chan_redraw_submission(struct chan *chan, int i) {
 }
 
 /*
+ * what happens when you ^L
+ * (TODO)
+ */
+void chan_refresh_submissions(struct chan *chan) {
+    wclear(chan->main_win);
+    int max = chan->main_lines * (chan->sub.page+1);
+    if (max > chan->sub.nsubs) max = chan->sub.nsubs;
+    for (int i = chan->main_lines * chan->sub.page; i < max; ++i) {
+        chan_redraw_submission(chan, i);
+    }
+    wrefresh(chan->main_win);
+}
+
+/*
  * redraw all submissions
  *
  * (this DOES call wrefresh())
  */
 void chan_draw_submissions(struct chan *chan) {
-    wclear(chan->main_win);
     scrollok(chan->main_win, FALSE);
-    for (int i = 0; i < chan->sub.nsubs; ++i) {
-        chan_redraw_submission(chan, i);
-    }
-    wrefresh(chan->main_win);
+    chan_refresh_submissions(chan);
 }
 
 /*
@@ -217,19 +227,30 @@ int chan_submissions_key(struct chan *chan, int ch) {
         case 'j':
             if (chan->sub.active < chan->sub.nsubs - 1) {
                 ++chan->sub.active;
+                // check to see if we need to scroll down a page
+                if (chan->sub.active >= chan->main_lines * (chan->sub.page+1)) {
+                    ++chan->sub.page;
+                    chan_refresh_submissions(chan);
+                } else {
+                    chan_redraw_submission(chan, chan->sub.active - 1);
+                    chan_redraw_submission(chan, chan->sub.active);
+                }
+                wrefresh(chan->main_win);
             }
-            chan_redraw_submission(chan, chan->sub.active - 1);
-            chan_redraw_submission(chan, chan->sub.active);
-            wrefresh(chan->main_win);
             return 1;
 
         case 'k':
             if (chan->sub.active > 0) {
                 --chan->sub.active;
+                if (chan->sub.active < chan->main_lines * chan->sub.page) {
+                    --chan->sub.page;
+                    chan_refresh_submissions(chan);
+                } else {
+                    chan_redraw_submission(chan, chan->sub.active + 1);
+                    chan_redraw_submission(chan, chan->sub.active);
+                }
+                wrefresh(chan->main_win);
             }
-            chan_redraw_submission(chan, chan->sub.active + 1);
-            chan_redraw_submission(chan, chan->sub.active);
-            wrefresh(chan->main_win);
             return 1;
 
         case 'l':
