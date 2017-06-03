@@ -328,6 +328,34 @@ void redraw_active_col(struct chan *chan, int idx) {
     wattron(chan->main_win, COLOR_PAIR(PAIR_WHITE));
 }
 
+void set_active_comment(struct chan *chan, int i) {
+    int old_active = chan->active_comment;
+    chan->active_comment = i;
+
+    if (i > old_active) {
+        // get as much of the newly focused comment on screen as
+        // possible (ideally, all of it)
+        if (OFFSET_STOP(chan->active_comment) > VIEW_BOTTOM) {
+            int new_scroll = OFFSET_STOP(chan->active_comment) -
+                chan->main_lines;
+            // don't scroll past the beginning, though
+            if (new_scroll > OFFSET_START(chan->active_comment)) {
+                new_scroll = OFFSET_START(chan->active_comment);
+            }
+            scroll_view_abs(chan, new_scroll);
+        }
+    } else {
+        // same deal as with above
+        if (OFFSET_START(chan->active_comment) < VIEW_TOP) {
+            scroll_view_abs(chan, OFFSET_START(chan->active_comment));
+        }
+    }
+
+    redraw_active_col(chan, old_active);
+    redraw_active_col(chan, chan->active_comment);
+    wrefresh(chan->main_win);
+}
+
 int chan_comments_key(struct chan *chan, int ch) {
     if ((ch >= '0' && ch <= '9') || ch == '\x7f') {
         wclear(chan->status_win);
@@ -387,37 +415,36 @@ int chan_comments_key(struct chan *chan, int ch) {
             return 1;
         case 'n':
             if (chan->active_comment < chan->viewing->ncomments - 1) {
-                ++chan->active_comment;
-
-                // get as much of the newly focused comment on screen as
-                // possible (ideally, all of it)
-                if (OFFSET_STOP(chan->active_comment) > VIEW_BOTTOM) {
-                    int new_scroll = OFFSET_STOP(chan->active_comment) -
-                        chan->main_lines;
-                    // don't scroll past the beginning, though
-                    if (new_scroll > OFFSET_START(chan->active_comment)) {
-                        new_scroll = OFFSET_START(chan->active_comment);
-                    }
-                    scroll_view_abs(chan, new_scroll);
-                }
-
-                redraw_active_col(chan, chan->active_comment - 1);
-                redraw_active_col(chan, chan->active_comment);
-                wrefresh(chan->main_win);
+                set_active_comment(chan, chan->active_comment + 1);
             }
             return 1;
         case 'p':
             if (chan->active_comment > 0) {
-                --chan->active_comment;
-
-                // same deal as with 'n'
-                if (OFFSET_START(chan->active_comment) < VIEW_TOP) {
-                    scroll_view_abs(chan, OFFSET_START(chan->active_comment));
+                set_active_comment(chan, chan->active_comment - 1);
+            }
+            return 1;
+        case 'N':
+            for (int d = chan->viewing->comments[chan->active_comment].depth,
+                    i = chan->active_comment + 1;
+                    i < chan->viewing->ncomments - 1; ++i) {
+                if (chan->viewing->comments[i].depth == d) {
+                    set_active_comment(chan, i);
+                    break;
+                } else if (chan->viewing->comments[i].depth < d) {
+                    break;
                 }
-
-                redraw_active_col(chan, chan->active_comment + 1);
-                redraw_active_col(chan, chan->active_comment);
-                wrefresh(chan->main_win);
+            }
+            return 1;
+        case 'P':
+            for (int d = chan->viewing->comments[chan->active_comment].depth,
+                    i = chan->active_comment - 1;
+                    i > 0; --i) {
+                if (chan->viewing->comments[i].depth == d) {
+                    set_active_comment(chan, i);
+                    break;
+                } else if (chan->viewing->comments[i].depth < d) {
+                    break;
+                }
             }
             return 1;
         case 'o':
