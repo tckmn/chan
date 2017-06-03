@@ -158,7 +158,7 @@ void add_view_fmt(struct chan *chan, int type, int offset, int len) {
     }
 }
 
-void add_view_line(struct chan *chan, int num, char *str, int len, int indent) {
+void add_view_line(struct chan *chan, char *str, int len, int indent) {
     char *line = malloc(len + indent + 1);
     memset(line, ' ', indent);
     strncpy(line + indent, str, len);
@@ -172,10 +172,6 @@ void add_view_line(struct chan *chan, int num, char *str, int len, int indent) {
             chan->view_lines * sizeof *chan->view_buf_fmt);
     chan->view_buf_fmt[chan->view_lines - 1] = NULL;
 
-    chan->view_buf_nums = realloc(chan->view_buf_nums,
-            chan->view_lines * sizeof *chan->view_buf_nums);
-    chan->view_buf_nums[chan->view_lines - 1] = num;
-
     // fix \x01 markers for URLs and add their formatting
     for (int i = 0; line[i]; ++i) {
         if (line[i] == 1) {
@@ -188,7 +184,6 @@ void add_view_line(struct chan *chan, int num, char *str, int len, int indent) {
 void draw_view_line(struct chan *chan, int y, int lineno) {
     char *line = chan->view_buf[lineno];
     struct fmt *fmt = chan->view_buf_fmt[lineno];
-    int num = chan->view_buf_nums[lineno];
     int idx = 0;
 
     while (fmt) {
@@ -210,7 +205,9 @@ void draw_view_line(struct chan *chan, int y, int lineno) {
     wattrset(chan->main_win, 0);
     mvwaddstr(chan->main_win, y, idx, line + idx);
 
-    if (num == chan->active_comment) {
+    if (lineno >= chan->comment_offsets[chan->active_comment] &&
+            (chan->active_comment == chan->viewing->ncomments - 1 ||
+             lineno < chan->comment_offsets[chan->active_comment + 1] - 1)) {
         int colpos = chan->viewing->comments[chan->active_comment].depth * 2;
         wattron(chan->main_win, COLOR_PAIR(PAIR_CYAN_BG));
         mvwaddch(chan->main_win, y, colpos, ' ');
@@ -220,11 +217,16 @@ void draw_view_line(struct chan *chan, int y, int lineno) {
 void chan_draw_comments(struct chan *chan) {
     wclear(chan->main_win);
 
+    chan->comment_offsets = malloc(chan->viewing->ncomments *
+            sizeof *chan->comment_offsets);
+
     // TODO unicode support
     for (int i = 0; i < chan->viewing->ncomments; ++i) {
         struct comment comment = chan->viewing->comments[i];
         int lastspace = 0, breakidx = 0, indent = comment.depth * 2 + 1,
             linewidth = chan->main_cols - indent;
+
+        chan->comment_offsets[i] = chan->view_lines;
 
         char *head = malloc(linewidth + 1);
         snprintf(head, linewidth + 1, "%s [%s]", comment.user, comment.age);
@@ -233,7 +235,7 @@ void chan_draw_comments(struct chan *chan) {
             strncat(head, "  -x ", linewidth - hlen);
             if (hlen + 3 < linewidth) head[hlen + 3] = '0' + comment.badness;
         }
-        add_view_line(chan, i, head, linewidth, indent);
+        add_view_line(chan, head, linewidth, indent);
         int ulen = strlen(comment.user), alen = strlen(comment.age);
         add_view_fmt(chan, FMT_USER, indent, ulen);
         add_view_fmt(chan, FMT_AGE, indent + ulen + 2, alen);
@@ -245,27 +247,23 @@ void chan_draw_comments(struct chan *chan) {
         for (int j = 0; j < strlen(comment.text); ++j) {
             if (j - breakidx >= linewidth) {
                 if (lastspace) {
-                    add_view_line(chan, i, comment.text + breakidx,
-                            lastspace, indent);
+                    add_view_line(chan, comment.text + breakidx, lastspace, indent);
                     breakidx += lastspace + 1;
                     lastspace = 0;
                 } else {
-                    add_view_line(chan, i, comment.text + breakidx,
-                            linewidth, indent);
+                    add_view_line(chan, comment.text + breakidx, linewidth, indent);
                     breakidx += linewidth;
                 }
             } else if (comment.text[j] == ' ') {
                 lastspace = j - breakidx;
             } else if (comment.text[j] == '\n') {
-                add_view_line(chan, i, comment.text + breakidx,
-                        j - breakidx, indent);
+                add_view_line(chan, comment.text + breakidx, j - breakidx, indent);
                 lastspace = 0;
                 breakidx = j + 1;
             }
         }
-        add_view_line(chan, i, comment.text + breakidx,
-                linewidth, indent);
-        add_view_line(chan, -1, "", 0, 0);
+        add_view_line(chan, comment.text + breakidx, linewidth, indent);
+        add_view_line(chan, "", 0, 0);
     }
 
     chan->view_scroll = 0;
@@ -277,15 +275,29 @@ void chan_draw_comments(struct chan *chan) {
     wrefresh(chan->main_win);
 }
 
-void redraw_active_col(struct chan *chan, int startpos, int step) {
-    int num = chan->view_buf_nums[chan->view_scroll + startpos];
-    int active = num == chan->active_comment;
-    wattron(chan->main_win, COLOR_PAIR(active ? PAIR_CYAN_BG : PAIR_WHITE));
+void redraw_active_col(struct chan *chan, int idx) {
+    // either clear or draw the active indicator depending on which comment
+    // the redraw is requested on
+    wattron(chan->main_win, COLOR_PAIR(idx == chan->active_comment ?
+                PAIR_CYAN_BG : PAIR_WHITE));
     wattrset(chan->main_win, 0);
 
-    for (int i = startpos; 0 <= i && i < chan->main_lines; i += step) {
-        if (chan->view_buf_nums[chan->view_scroll + i] == -1) break;
-        mvwaddch(chan->main_win, i, chan->viewing->comments[num].depth * 2, ' ');
+    // find the bounds on the comment itself
+    int start = chan->comment_offsets[idx];
+    int stop = idx == chan->viewing->ncomments - 1 ? chan->view_lines :
+        chan->comment_offsets[idx + 1] - 1;
+
+    // translate to screen coordinates
+    start -= chan->view_scroll;
+    stop -= chan->view_scroll;
+
+    // clamp the bounds such that they're on the screen
+    start = start < 0 ? 0 : start;
+    stop = stop > chan->main_lines ? chan->main_lines : stop;
+
+    // actually draw the line
+    for (int i = start; i < stop; ++i) {
+        mvwaddch(chan->main_win, i, chan->viewing->comments[idx].depth * 2, ' ');
     }
 }
 
@@ -330,11 +342,12 @@ int chan_comments_key(struct chan *chan, int ch) {
 
                 // check to see whether we just scrolled the active comment
                 // out of view
-                if (chan->view_buf_nums[chan->view_scroll] == -1 &&
-                        chan->view_buf_nums[chan->view_scroll - 1] == chan->active_comment) {
-                    ++chan->active_comment;
-                    redraw_active_col(chan, 1, 1);
+                if (chan->active_comment != chan->viewing->ncomments - 1 &&
+                        chan->comment_offsets[chan->active_comment + 1] - 1 <=
+                            chan->view_scroll) {
+                    redraw_active_col(chan, ++chan->active_comment);
                 }
+
                 wrefresh(chan->main_win);
             }
             return 1;
@@ -343,15 +356,15 @@ int chan_comments_key(struct chan *chan, int ch) {
                 --chan->view_scroll;
                 wscrl(chan->main_win, -1);
                 draw_view_line(chan, 0, chan->view_scroll);
+                wrefresh(chan->main_win);
 
                 // as in 'j', check to see whether the active comment was
                 // scrolled away
-                if (chan->view_buf_nums[chan->view_scroll + chan->main_lines - 1] == -1 &&
-                        chan->view_buf_nums[chan->view_scroll + chan->main_lines] == chan->active_comment) {
-                    --chan->active_comment;
-                    redraw_active_col(chan, chan->main_lines - 2, -1);
+                if (chan->active_comment != 0 &&
+                        chan->comment_offsets[chan->active_comment] + 1 >=
+                            chan->view_scroll + chan->main_lines) {
+                    redraw_active_col(chan, --chan->active_comment);
                 }
-                wrefresh(chan->main_win);
             }
             return 1;
         case 'o':
@@ -372,8 +385,8 @@ int chan_comments_key(struct chan *chan, int ch) {
             chan->view_buf = NULL;
             free(chan->view_buf_fmt);
             chan->view_buf_fmt = NULL;
-            free(chan->view_buf_nums);
-            chan->view_buf_nums = NULL;
+            free(chan->comment_offsets);
+            chan->comment_offsets = NULL;
             chan->view_lines = 0;
             chan->view_scroll = 0;
             chan->view_urlnbuf[0] = '\0';
