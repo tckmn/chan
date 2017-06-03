@@ -33,6 +33,7 @@ struct chan {
         int nsubs;
         int active;
         char *fmt_str;
+        int page;
     } sub;
 
     struct {

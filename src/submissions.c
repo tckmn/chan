@@ -26,6 +26,7 @@ void chan_destroy_submissions(struct chan *chan) {
     free(chan->sub.subs);
     chan->sub.subs = NULL;
     chan->sub.nsubs = 0;
+    chan->sub.page = 0;
 }
 
 /*
@@ -113,16 +114,19 @@ void chan_redraw_submission(struct chan *chan, int i) {
     wattrset(chan->main_win, normal_attr);
     struct sub sub = chan->sub.subs[i];
 
+    // physical screen position of this submission
+    int ypos = i - chan->main_lines * chan->sub.page;
+
     // loop that steps through the format string specified
-    int y, x;
+    int y, x, err = OK;
     char *substr = NULL;
     int idx = 0, subidx = 0;
-    wmove(chan->main_win, i, 0);
+    wmove(chan->main_win, ypos, 0);
     do {
         if (substr) {
             // we're being asked to render a given char* verbatim, so do so
             int blen = bytelen(substr[subidx]);
-            waddnstr(chan->main_win, substr + subidx, blen);
+            err = waddnstr(chan->main_win, substr + subidx, blen);
             if (!substr[subidx += blen]) {
                 // done - free memory, reset attributes
                 free(substr);
@@ -136,7 +140,7 @@ void chan_redraw_submission(struct chan *chan, int i) {
             if (!chan->sub.fmt_str[idx]) {
                 // format string has ended, output spaces until EOL
                 // (we need to for the active highlight to go all the way)
-                waddch(chan->main_win, ' ');
+                err = waddch(chan->main_win, ' ');
             } else if (chan->sub.fmt_str[idx] == '%') {
                 // format specifier, get the next char to figure out what it is
                 switch (chan->sub.fmt_str[++idx]) {
@@ -170,10 +174,10 @@ void chan_redraw_submission(struct chan *chan, int i) {
                         strcpy(substr, sub.title);
                         break;
                     case '%': // literal %
-                        waddch(chan->main_win, '%');
+                        err = waddch(chan->main_win, '%');
                         break;
                     default: // unrecognized, pretend the % wasn't special
-                        waddch(chan->main_win, '%');
+                        err = waddch(chan->main_win, '%');
                         --idx;
                         break;
                 }
@@ -181,13 +185,13 @@ void chan_redraw_submission(struct chan *chan, int i) {
             } else {
                 // no % in the format string, copy down the next char
                 int blen = bytelen(chan->sub.fmt_str[idx]);
-                waddnstr(chan->main_win, chan->sub.fmt_str + idx, blen);
+                err = waddnstr(chan->main_win, chan->sub.fmt_str + idx, blen);
                 idx += blen;
             }
         }
         getyx(chan->main_win, y, x);
         (void)x; // suppress compiler warning about unused variable
-    } while (y == i); // keep going until EOL
+    } while (err != ERR && y == ypos); // keep going until EOL
 }
 
 /*
@@ -197,6 +201,7 @@ void chan_redraw_submission(struct chan *chan, int i) {
  */
 void chan_draw_submissions(struct chan *chan) {
     wclear(chan->main_win);
+    scrollok(chan->main_win, FALSE);
     for (int i = 0; i < chan->sub.nsubs; ++i) {
         chan_redraw_submission(chan, i);
     }

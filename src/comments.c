@@ -294,6 +294,7 @@ void draw_view_line(struct chan *chan, int y, int lineno) {
  */
 void chan_draw_comments(struct chan *chan) {
     wclear(chan->main_win);
+    scrollok(chan->main_win, TRUE);
 
     // allocate space for linewise offsets of each comment
     free(chan->com.offsets);

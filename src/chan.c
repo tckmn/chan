@@ -48,7 +48,6 @@ struct chan *chan_init(int argc, char **argv) {
 
     chan->main_win = newwin(chan->main_lines = LINES - 1,
             chan->main_cols = COLS, 0, 0);
-    scrollok(chan->main_win, TRUE);
     chan->status_win = newwin(1, COLS, LINES - 1, 0);
     refresh();
 
