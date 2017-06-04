@@ -27,6 +27,7 @@ void chan_sub_destroy(struct chan *chan) {
     free(chan->sub.subs);
     chan->sub.subs = NULL;
     chan->sub.nsubs = 0;
+    chan->sub.active = 0;
     chan->sub.page = 0;
 }
 
@@ -40,7 +41,14 @@ void chan_sub_update(struct chan *chan) {
     chan->sub.nsubs = 30;
 
     // make GET request and obtain data
-    char *data = http(chan->curl, "https://news.ycombinator.com/", NULL, 1);
+    const static char* urls[] = {
+        "https://news.ycombinator.com/",
+        "https://news.ycombinator.com/newest",
+        "https://news.ycombinator.com/show",
+        "https://news.ycombinator.com/ask",
+        "https://news.ycombinator.com/jobs"
+    };
+    char *data = http(chan->curl, urls[chan->sub.mode], NULL, 1);
 
     // this loop runs once for each submission found
     struct sub *sub = chan->sub.subs;
@@ -294,6 +302,36 @@ int chan_sub_key(struct chan *chan, int ch) {
             chan->com.sub = chan->sub.subs + chan->sub.active;
             if (!chan->com.sub->coms) chan_com_update(chan);
             chan_com_draw(chan);
+            return 1;
+
+        case 'H':
+            chan->sub.mode = SUB_HOME;
+            chan_sub_update(chan);
+            chan_sub_draw(chan);
+            return 1;
+
+        case 'N':
+            chan->sub.mode = SUB_NEW;
+            chan_sub_update(chan);
+            chan_sub_draw(chan);
+            return 1;
+
+        case 'S':
+            chan->sub.mode = SUB_SHOW;
+            chan_sub_update(chan);
+            chan_sub_draw(chan);
+            return 1;
+
+        case 'A':
+            chan->sub.mode = SUB_ASK;
+            chan_sub_update(chan);
+            chan_sub_draw(chan);
+            return 1;
+
+        case 'J':
+            chan->sub.mode = SUB_JOBS;
+            chan_sub_update(chan);
+            chan_sub_draw(chan);
             return 1;
 
         default:

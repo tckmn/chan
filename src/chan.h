@@ -35,6 +35,13 @@ struct chan {
         int active;
         char *fmt_str;
         int page;
+        enum {
+            SUB_HOME = 0,
+            SUB_NEW,
+            SUB_SHOW,
+            SUB_ASK,
+            SUB_JOBS
+        } mode;
     } sub;
 
     struct {
