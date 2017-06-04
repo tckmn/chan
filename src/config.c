@@ -30,7 +30,14 @@
     }                                                                         \
 } while (0)
 
+/*
+ * WARNING: 'key' will be modified if it contains dashes!
+ * do NOT pass a string literal with dashes into this function
+ * use underscores instead
+ */
 int parse_long_arg(struct chan *chan, char *key, int key_len, char *val, int overwrite) {
+    for (char *ch = key; *ch; ++ch) if (*ch == '-') *ch = '_';
+
     if (!strncmp(key, "username", key_len)) {
         NEEDS_VAL;
         if (overwrite || !chan->username) {
