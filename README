@@ -1,0 +1,34 @@
+chan - terminal-based (ncurses) read/write Hacker News client
+
+To compile and run:
+
+    make
+    bin/chan
+
+Depends on ncurses and libcurl.
+
+See the included manpage (or the HTML version, chan.html) for more details.
+
+Features:
+ - view list of submissions
+ - open submission link in browser
+ - view comments of submission within the terminal
+ - access all sections in the top bar: new, threads [TODO], comments [TODO],
+   show, ask, jobs, submit [TODO]
+ - upvote, downvote [TODO], flag [TODO], and favorite [TODO] submissions and
+   comments
+ - post submissions [TODO] and comments [TODO]
+ - view user profiles [TODO]
+ - update own user profile [TODO]
+
+The default key bindings are
+ - j/k to move up/down
+ - H/N/S/A/J to view the home page / new / show / ask / jobs
+ - n/p to jump to the next/previous comment
+ - N/P to jump to the next/previous comment at the same depth
+ - o to open a URL
+ - u to upvote
+ - Enter to view the comments of a submission
+ - numbers to specify a link to select in comments
+ - l to login
+ - q to go back or quit
