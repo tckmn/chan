@@ -19,5 +19,11 @@ release: FLAGS = -Os
 release: bin/chan
 	strip -s -R .comment -R .gnu.version bin/chan
 
+chan.html: chan.1
+	man2html <chan.1 >chan.html
+	sed -i '/<DD>/{N;s/.*<BR>/<BR>/}' chan.html
+	sed -i 's/Return to Main Contents//' chan.html
+	sed -i 's!<A HREF="http://localhost[^>]*>\([^<]*\)</A>!\1!' chan.html
+
 clean:
 	rm -rf bin

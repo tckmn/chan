@@ -1,0 +1,154 @@
+<HTML><HEAD><TITLE>Manpage of CHAN</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
+</HEAD><BODY>
+<H1>CHAN</H1>
+Section: User Commands  (1)<BR>Updated: 2017-06-03<BR><A HREF="#index">Index</A>
+<HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+chan - terminal-based (ncurses) read/write Hacker News client
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>chan</B>
+
+[<I>OPTION</I>]... [<I>CONFIG-FILE</I>]...
+<BR>
+
+<B>chan</B>
+
+<B>-h|--help</B>
+<BR>
+
+<B>chan</B>
+
+<B>-v|--version</B>
+<BR>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<B>chan</B>
+
+is a client for Hacker News that attempts to implement all features accessible
+from the web interface.
+It is designed to be used on text terminals and controlled entirely via key
+bindings, many of which were inspired by existing programs such as
+<B>vi</B>(1),
+
+<B>less</B>(1),
+
+<B>mutt</B>(1),
+
+and
+<B>newsbeuter</B>(1).
+
+It also aims to be as easily configurable as possible such that its users can
+change any aspect of its execution as desired.
+<P>
+
+The source code is written in C (hence <B>C</B> <B>HA</B>cker <B>N</B>ews) and
+licensed under the GNU GPL 3.0.
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<DL COMPACT>
+<DT><B>-u</B>, <B>--username</B>
+
+<BR>
+
+
+<DT><B>-p</B>, <B>--password</B>
+
+<DD>
+Specify user credentials to log in with.
+<DT><B>-h</B>, <B>--help</B>
+
+<DD>
+Output a help message.
+<DT><B>-v</B>, <B>--version</B>
+
+<DD>
+Output the currently installed version of
+<B>chan</B>.
+
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>CONFIGURATION</H2>
+
+The syntax of a configuration file is one option per line, where the format of
+each line is as follows:
+<DL COMPACT><DT><DD>
+<P>
+
+<PRE>
+<I>name</I>=<I>value</I>
+</PRE>
+
+</DL>
+
+<P>
+
+The following configuration options (which take the place of <I>name</I>) are
+available:
+<DL COMPACT>
+<DT><B>username</B>
+
+<BR>
+
+
+<DT><B>password</B>
+
+<DD>
+Specify user credentials to log in with.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>FILES</H2>
+
+<DL COMPACT>
+<DT><B>$HOME/.chanrc</B>
+
+<BR>
+
+
+<DT><B>%USERPROFILE%/_chanrc</B>
+
+<DD>
+The default configuration file, for UNIX-like and Windows systems respectively.
+<DT><DD>
+If no configuration files are specified on the command line,
+<B>chan</B>
+
+will read from this file by default, if it is present.
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>BUGS</H2>
+
+Almost certainly.
+<A NAME="lbAI">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+KeyboardFire &lt;andy@keyboardfire.com&gt;
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DT><A HREF="#lbAF">CONFIGURATION</A><DD>
+<DT><A HREF="#lbAG">FILES</A><DD>
+<DT><A HREF="#lbAH">BUGS</A><DD>
+<DT><A HREF="#lbAI">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="http://github.com/hamano/man2html/">man2html</A>,
+using the manual pages.<BR>
+Time: 05:09:47 GMT, June 04, 2017
+</BODY>
+</HTML>

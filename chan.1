@@ -1,0 +1,80 @@
+.TH CHAN 1 2017-06-03
+.SH NAME
+chan \- terminal-based (ncurses) read/write Hacker News client
+.SH SYNOPSIS
+.B chan
+[\fIOPTION\fR]... \
+[\fICONFIG-FILE\fR]...
+.br
+.B chan
+\fB\-h|\-\-help\fR
+.br
+.B chan
+\fB\-v|\-\-version\fR
+.br
+.SH DESCRIPTION
+.B chan
+is a client for Hacker News that attempts to implement all features accessible
+from the web interface.
+It is designed to be used on text terminals and controlled entirely via key
+bindings, many of which were inspired by existing programs such as
+.BR vi (1),
+.BR less (1),
+.BR mutt (1),
+and
+.BR newsbeuter (1).
+It also aims to be as easily configurable as possible such that its users can
+change any aspect of its execution as desired.
+.PP
+The source code is written in C (hence \fBC\fR \fBHA\fRcker \fBN\fRews) and
+licensed under the GNU GPL 3.0.
+.SH OPTIONS
+.TP
+.BR \-u ", " \-\-username
+.br
+.ns
+.TP
+.BR \-p ", " \-\-password
+Specify user credentials to log in with.
+.TP
+.BR \-h ", " \-\-help
+Output a help message.
+.TP
+.BR \-v ", " \-\-version
+Output the currently installed version of
+.BR chan .
+.SH CONFIGURATION
+The syntax of a configuration file is one option per line, where the format of
+each line is as follows:
+.RS
+.PP
+.nf
+\fIname\fR=\fIvalue\fR
+.fi
+.RE
+.PP
+The following configuration options (which take the place of \fIname\fR) are
+available:
+.TP
+.BR username
+.br
+.ns
+.TP
+.BR password
+Specify user credentials to log in with.
+.SH FILES
+.TP
+.BR $HOME/.chanrc
+.br
+.ns
+.TP
+.BR %USERPROFILE%/_chanrc
+The default configuration file, for UNIX-like and Windows systems respectively.
+.IP
+If no configuration files are specified on the command line,
+.BR chan
+will read from this file by default, if it is present.
+.SH BUGS
+Almost certainly.
+.SH AUTHOR
+KeyboardFire <andy@keyboardfire.com>
