@@ -63,6 +63,15 @@ int parse_long_arg(struct chan *chan, char *key, int key_len, char *val, int ove
     PARSE_KEY(sub_show);
     PARSE_KEY(sub_ask);
     PARSE_KEY(sub_jobs);
+    PARSE_KEY(com_scroll_down);
+    PARSE_KEY(com_scroll_up);
+    PARSE_KEY(com_next);
+    PARSE_KEY(com_prev);
+    PARSE_KEY(com_next_at_depth);
+    PARSE_KEY(com_prev_at_depth);
+    PARSE_KEY(com_open_url);
+    PARSE_KEY(com_back);
+    PARSE_KEY(com_upvote);
 
     fprintf(stderr, "unknown option `%.*s'\n", key_len, key);
     return 1;
@@ -248,6 +257,15 @@ parsed_long:
     if (!chan->keys.sub_show)          chan->keys.sub_show = 'S';
     if (!chan->keys.sub_ask)           chan->keys.sub_ask = 'A';
     if (!chan->keys.sub_jobs)          chan->keys.sub_jobs = 'J';
+    if (!chan->keys.com_scroll_down)   chan->keys.com_scroll_down = 'e';
+    if (!chan->keys.com_scroll_up)     chan->keys.com_scroll_up = 'y';
+    if (!chan->keys.com_next)          chan->keys.com_next = 'j';
+    if (!chan->keys.com_prev)          chan->keys.com_prev = 'k';
+    if (!chan->keys.com_next_at_depth) chan->keys.com_next_at_depth = 'J';
+    if (!chan->keys.com_prev_at_depth) chan->keys.com_prev_at_depth = 'K';
+    if (!chan->keys.com_open_url)      chan->keys.com_open_url = 'o';
+    if (!chan->keys.com_back)          chan->keys.com_back = 'q';
+    if (!chan->keys.com_upvote)        chan->keys.com_upvote = '+';
 
     return 0;
 }

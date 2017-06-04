@@ -68,6 +68,15 @@ struct chan {
         char sub_show;
         char sub_ask;
         char sub_jobs;
+        char com_scroll_down;
+        char com_scroll_up;
+        char com_next;
+        char com_prev;
+        char com_next_at_depth;
+        char com_prev_at_depth;
+        char com_open_url;
+        char com_back;
+        char com_upvote;
     } keys;
 
     char *username;

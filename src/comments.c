@@ -580,115 +580,127 @@ int chan_com_key(struct chan *chan, int ch) {
         wrefresh(chan->status_win);
 
         return 1;
-    } else switch (ch) {
-        case '\x1b': // esc
+    }
+
+    else if (ch == '\x1b') {
+        chan->com.urlnbuf[0] = '\0';
+        wclear(chan->status_win);
+        wrefresh(chan->status_win);
+        return 1;
+    }
+
+    else if (ch == chan->keys.com_scroll_down) {
+        if (VIEW_BOTTOM < chan->com.lines - 1) {
+            scroll_view(chan, 1);
+
+            // check to see whether we just scrolled the active comment
+            // out of view
+            if (OFFSET_STOP(chan->com.active) <= VIEW_TOP) {
+                redraw_active_col(chan, ++chan->com.active);
+            }
+
+            wrefresh(chan->main_win);
+        }
+        return 1;
+    }
+
+    else if (ch == chan->keys.com_scroll_up) {
+        if (VIEW_TOP > 0) {
+            scroll_view(chan, -1);
+
+            // as in 'j', check to see whether the active comment was
+            // scrolled away
+            if (OFFSET_START(chan->com.active) > VIEW_BOTTOM) {
+                redraw_active_col(chan, --chan->com.active);
+            }
+            wrefresh(chan->main_win);
+        }
+        return 1;
+    }
+
+    else if (ch == chan->keys.com_next) {
+        if (chan->com.active < chan->com.sub->ncoms - 1) {
+            set_active_comment(chan, chan->com.active + 1);
+        }
+        return 1;
+    }
+
+    else if (ch == chan->keys.com_prev) {
+        if (chan->com.active > 0) {
+            set_active_comment(chan, chan->com.active - 1);
+        }
+        return 1;
+    }
+
+    else if (ch == chan->keys.com_next_at_depth) {
+        for (int d = ACTIVE.depth, i = chan->com.active + 1;
+                i < chan->com.sub->ncoms; ++i) {
+            if (chan->com.sub->coms[i].depth == d) {
+                set_active_comment(chan, i);
+                break;
+            } else if (chan->com.sub->coms[i].depth < d) {
+                break;
+            }
+        }
+        return 1;
+    }
+
+    else if (ch == chan->keys.com_prev_at_depth) {
+        for (int d = ACTIVE.depth, i = chan->com.active - 1; i >= 0; --i) {
+            if (chan->com.sub->coms[i].depth == d) {
+                set_active_comment(chan, i);
+                break;
+            } else if (chan->com.sub->coms[i].depth < d) {
+                break;
+            }
+        }
+        return 1;
+    }
+
+    else if (ch == chan->keys.com_open_url) {
+        if (chan->com.urlnbuf[0]) {
+            wclear(chan->status_win);
+            wrefresh(chan->status_win);
+            urlopen(chan->com.sub->urls[atoi(chan->com.urlnbuf)-1]);
             chan->com.urlnbuf[0] = '\0';
+        } else urlopen(chan->com.sub->url);
+        return 1;
+    }
+
+    else if (ch == chan->keys.com_back) {
+        chan->com.sub = NULL;
+        chan_com_destroy(chan);
+
+        wclear(chan->status_win);
+        wrefresh(chan->status_win);
+
+        chan_sub_draw(chan);
+
+        return 1;
+    }
+
+    else if (ch == chan->keys.com_upvote) {
+        if (chan->authenticated) {
+            char *buf = malloc(100);
+            sprintf(buf, "https://news.ycombinator.com/vote?id=%d&how=u%c&auth=%s",
+                    ACTIVE.id, ACTIVE.voted ? 'n' : 'p', ACTIVE.auth);
+            http(chan->curl, buf, NULL, 0);
+            free(buf);
+
+            ACTIVE.voted = 1 - ACTIVE.voted;
+            render_header(chan, chan->com.active);
+            draw_view_line(chan, chan->com.offsets[chan->com.active]);
+            wrefresh(chan->main_win);
+        } else {
             wclear(chan->status_win);
+            mvwaddstr(chan->status_win, 0, 0,
+                    "You must be authenticated to do that.");
             wrefresh(chan->status_win);
-            return 1;
+        }
+        return 1;
+    }
 
-        case 'j':
-            if (VIEW_BOTTOM < chan->com.lines - 1) {
-                scroll_view(chan, 1);
-
-                // check to see whether we just scrolled the active comment
-                // out of view
-                if (OFFSET_STOP(chan->com.active) <= VIEW_TOP) {
-                    redraw_active_col(chan, ++chan->com.active);
-                }
-
-                wrefresh(chan->main_win);
-            }
-            return 1;
-
-        case 'k':
-            if (VIEW_TOP > 0) {
-                scroll_view(chan, -1);
-
-                // as in 'j', check to see whether the active comment was
-                // scrolled away
-                if (OFFSET_START(chan->com.active) > VIEW_BOTTOM) {
-                    redraw_active_col(chan, --chan->com.active);
-                }
-                wrefresh(chan->main_win);
-            }
-            return 1;
-
-        case 'n':
-            if (chan->com.active < chan->com.sub->ncoms - 1) {
-                set_active_comment(chan, chan->com.active + 1);
-            }
-            return 1;
-
-        case 'p':
-            if (chan->com.active > 0) {
-                set_active_comment(chan, chan->com.active - 1);
-            }
-            return 1;
-
-        case 'N':
-            for (int d = ACTIVE.depth, i = chan->com.active + 1;
-                    i < chan->com.sub->ncoms; ++i) {
-                if (chan->com.sub->coms[i].depth == d) {
-                    set_active_comment(chan, i);
-                    break;
-                } else if (chan->com.sub->coms[i].depth < d) {
-                    break;
-                }
-            }
-            return 1;
-
-        case 'P':
-            for (int d = ACTIVE.depth, i = chan->com.active - 1; i >= 0; --i) {
-                if (chan->com.sub->coms[i].depth == d) {
-                    set_active_comment(chan, i);
-                    break;
-                } else if (chan->com.sub->coms[i].depth < d) {
-                    break;
-                }
-            }
-            return 1;
-
-        case 'o':
-            if (chan->com.urlnbuf[0]) {
-                wclear(chan->status_win);
-                wrefresh(chan->status_win);
-                urlopen(chan->com.sub->urls[atoi(chan->com.urlnbuf)-1]);
-                chan->com.urlnbuf[0] = '\0';
-            } else urlopen(chan->com.sub->url);
-            return 1;
-
-        case 'q':
-            chan->com.sub = NULL;
-            chan_com_destroy(chan);
-
-            wclear(chan->status_win);
-            wrefresh(chan->status_win);
-
-            chan_sub_draw(chan);
-
-            return 1;
-
-        case 'u':
-            if (chan->authenticated) {
-                char *buf = malloc(100);
-                sprintf(buf, "https://news.ycombinator.com/vote?id=%d&how=u%c&auth=%s",
-                        ACTIVE.id, ACTIVE.voted ? 'n' : 'p', ACTIVE.auth);
-                http(chan->curl, buf, NULL, 0);
-                free(buf);
-
-                ACTIVE.voted = 1 - ACTIVE.voted;
-                render_header(chan, chan->com.active);
-                draw_view_line(chan, chan->com.offsets[chan->com.active]);
-                wrefresh(chan->main_win);
-            } else {
-                wclear(chan->status_win);
-                mvwaddstr(chan->status_win, 0, 0,
-                        "You must be authenticated to do that.");
-                wrefresh(chan->status_win);
-            }
-            return 1;
-
-        default: return 0;
+    else {
+        return 0;
     }
 }
