@@ -1,5 +1,6 @@
 #include "submissions.h"
 #include "comments.h"
+#include "title.h"
 #include "net.h"
 #include "parse.h"
 #include "sys.h"
@@ -20,7 +21,7 @@ void free_fmt(struct fmt *fmt) {
 /*
  * free all the memory and zero everything related to displayed comments
  */
-void chan_destroy_comments(struct chan *chan) {
+void chan_com_destroy(struct chan *chan) {
     for (int i = 0; i < chan->com.lines; ++i) {
         free(chan->com.buf[i]);
         free_fmt(chan->com.buf_fmt[i]);
@@ -128,8 +129,8 @@ char *unhtml(struct chan *chan, char *src, int len) {
  * copies the information relevant to chan->com.sub into corresponding fields,
  * including the data itself, links found inside of it, etc.
  */
-void chan_update_comments(struct chan *chan) {
-    chan_destroy_comments(chan);
+void chan_com_update(struct chan *chan) {
+    chan_com_destroy(chan);
 
     // we can guess at how much space we'll probably need with the comment
     // count reported from the front page, so allocate that much
@@ -375,10 +376,27 @@ void render_header(struct chan *chan, int idx) {
 }
 
 /*
+ * what happens when you ^L
+ * (TODO)
+ */
+void chan_com_refresh(struct chan *chan) {
+    chan_title_refresh(chan);
+    wclear(chan->main_win);
+    for (int i = chan->com.scroll;
+            i < chan->com.lines && i < chan->com.scroll + chan->main_lines;
+            ++i) {
+        draw_view_line(chan, i);
+    }
+    wrefresh(chan->main_win);
+    wclear(chan->status_win);
+    wrefresh(chan->status_win);
+}
+
+/*
  * render all parsed comments into the view buffer and draw the visible top
  * section
  */
-void chan_draw_comments(struct chan *chan) {
+void chan_com_draw(struct chan *chan) {
     wclear(chan->main_win);
     scrollok(chan->main_win, TRUE);
 
@@ -434,11 +452,8 @@ void chan_draw_comments(struct chan *chan) {
     // (we assume that we're starting at the top)
     chan->com.scroll = 0;
     chan->com.active = 0;
-    for (int i = 0; i < chan->com.lines && i < chan->main_lines; ++i) {
-        draw_view_line(chan, i);
-    }
 
-    wrefresh(chan->main_win);
+    chan_com_refresh(chan);
 }
 
 /*
@@ -535,7 +550,7 @@ void set_active_comment(struct chan *chan, int i) {
  * called on every keypress while viewing comments
  */
 #define ACTIVE chan->com.sub->coms[chan->com.active]
-int chan_comments_key(struct chan *chan, int ch) {
+int chan_com_key(struct chan *chan, int ch) {
     if ((ch >= '0' && ch <= '9') || ch == '\x7f') {
         // a key that involves the URL number buffer
         wclear(chan->status_win);
@@ -645,12 +660,12 @@ int chan_comments_key(struct chan *chan, int ch) {
 
         case 'q':
             chan->com.sub = NULL;
-            chan_destroy_comments(chan);
+            chan_com_destroy(chan);
 
             wclear(chan->status_win);
             wrefresh(chan->status_win);
 
-            chan_draw_submissions(chan);
+            chan_sub_draw(chan);
 
             return 1;
 

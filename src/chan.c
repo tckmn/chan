@@ -46,8 +46,9 @@ struct chan *chan_init(int argc, char **argv) {
     init_pair(PAIR_CYAN_BG,    COLOR_BLACK, COLOR_CYAN);
     init_pair(PAIR_WHITE_BG,   COLOR_BLACK, COLOR_WHITE);
 
-    chan->main_win = newwin(chan->main_lines = LINES - 1,
-            chan->main_cols = COLS, 0, 0);
+    chan->title_win = newwin(1, COLS, 0, 0);
+    chan->main_win = newwin(chan->main_lines = LINES - 2,
+            chan->main_cols = COLS, 1, 0);
     chan->status_win = newwin(1, COLS, LINES - 1, 0);
     refresh();
 
@@ -55,15 +56,15 @@ struct chan *chan_init(int argc, char **argv) {
 }
 
 void chan_main_loop(struct chan *chan) {
-    chan_update_submissions(chan);
-    chan_draw_submissions(chan);
+    chan_sub_update(chan);
+    chan_sub_draw(chan);
 
     int ch;
     while ((ch = getch())) {
         int handled;
         if (chan->username)     handled = chan_login_key(chan, ch);
-        else if (chan->com.sub) handled = chan_comments_key(chan, ch);
-        else                    handled = chan_submissions_key(chan, ch);
+        else if (chan->com.sub) handled = chan_com_key(chan, ch);
+        else                    handled = chan_sub_key(chan, ch);
 
         // global keybinds
         if (!handled) switch (ch) {
@@ -83,6 +84,6 @@ void chan_destroy(struct chan *chan) {
     curl_easy_cleanup(chan->curl);
     curl_global_cleanup();
 
-    chan_destroy_submissions(chan);
+    chan_sub_destroy(chan);
     free(chan);
 }

@@ -1,6 +1,7 @@
 #include "submissions.h"
 #include "comments.h"
 #include "login.h"
+#include "title.h"
 #include "net.h"
 #include "parse.h"
 #include "sys.h"
@@ -12,7 +13,7 @@
 /*
  * free all the memory and zero everything related to cached submissions
  */
-void chan_destroy_submissions(struct chan *chan) {
+void chan_sub_destroy(struct chan *chan) {
     for (int i = 0; i < chan->sub.nsubs; ++i) {
         free(chan->sub.subs[i].url);
         free(chan->sub.subs[i].title);
@@ -33,8 +34,8 @@ void chan_destroy_submissions(struct chan *chan) {
  * loads the top 30 from the front page and populates all submission-related
  * fields
  */
-void chan_update_submissions(struct chan *chan) {
-    chan_destroy_submissions(chan);
+void chan_sub_update(struct chan *chan) {
+    chan_sub_destroy(chan);
     chan->sub.subs = malloc(30 * sizeof *chan->sub.subs);
     chan->sub.nsubs = 30;
 
@@ -198,7 +199,8 @@ void chan_redraw_submission(struct chan *chan, int i) {
  * what happens when you ^L
  * (TODO)
  */
-void chan_refresh_submissions(struct chan *chan) {
+void chan_sub_refresh(struct chan *chan) {
+    chan_title_refresh(chan);
     wclear(chan->main_win);
     int max = chan->main_lines * (chan->sub.page+1);
     if (max > chan->sub.nsubs) max = chan->sub.nsubs;
@@ -206,6 +208,8 @@ void chan_refresh_submissions(struct chan *chan) {
         chan_redraw_submission(chan, i);
     }
     wrefresh(chan->main_win);
+    wclear(chan->status_win);
+    wrefresh(chan->status_win);
 }
 
 /*
@@ -213,16 +217,16 @@ void chan_refresh_submissions(struct chan *chan) {
  *
  * (this DOES call wrefresh())
  */
-void chan_draw_submissions(struct chan *chan) {
+void chan_sub_draw(struct chan *chan) {
     scrollok(chan->main_win, FALSE);
-    chan_refresh_submissions(chan);
+    chan_sub_refresh(chan);
 }
 
 /*
  * called on every keypress while on the main page
  */
 #define ACTIVE chan->sub.subs[chan->sub.active]
-int chan_submissions_key(struct chan *chan, int ch) {
+int chan_sub_key(struct chan *chan, int ch) {
     switch (ch) {
         case 'j':
             if (chan->sub.active < chan->sub.nsubs - 1) {
@@ -230,7 +234,7 @@ int chan_submissions_key(struct chan *chan, int ch) {
                 // check to see if we need to scroll down a page
                 if (chan->sub.active >= chan->main_lines * (chan->sub.page+1)) {
                     ++chan->sub.page;
-                    chan_refresh_submissions(chan);
+                    chan_sub_refresh(chan);
                 } else {
                     chan_redraw_submission(chan, chan->sub.active - 1);
                     chan_redraw_submission(chan, chan->sub.active);
@@ -244,7 +248,7 @@ int chan_submissions_key(struct chan *chan, int ch) {
                 --chan->sub.active;
                 if (chan->sub.active < chan->main_lines * chan->sub.page) {
                     --chan->sub.page;
-                    chan_refresh_submissions(chan);
+                    chan_sub_refresh(chan);
                 } else {
                     chan_redraw_submission(chan, chan->sub.active + 1);
                     chan_redraw_submission(chan, chan->sub.active);
@@ -262,8 +266,8 @@ int chan_submissions_key(struct chan *chan, int ch) {
             return 1;
 
         case 'r':
-            chan_update_submissions(chan);
-            chan_draw_submissions(chan);
+            chan_sub_update(chan);
+            chan_sub_draw(chan);
             return 1;
 
         case 'u':
@@ -288,8 +292,8 @@ int chan_submissions_key(struct chan *chan, int ch) {
 
         case '\n':
             chan->com.sub = chan->sub.subs + chan->sub.active;
-            if (!chan->com.sub->coms) chan_update_comments(chan);
-            chan_draw_comments(chan);
+            if (!chan->com.sub->coms) chan_com_update(chan);
+            chan_com_draw(chan);
             return 1;
 
         default:

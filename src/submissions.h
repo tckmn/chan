@@ -3,9 +3,9 @@
 
 #include "chan.h"
 
-void chan_destroy_submissions(struct chan *chan);
-void chan_update_submissions(struct chan *chan);
-void chan_draw_submissions(struct chan *chan);
-int chan_submissions_key(struct chan *chan, int ch);
+void chan_sub_destroy(struct chan *chan);
+void chan_sub_update(struct chan *chan);
+void chan_sub_draw(struct chan *chan);
+int chan_sub_key(struct chan *chan, int ch);
 
 #endif

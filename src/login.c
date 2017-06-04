@@ -55,8 +55,8 @@ int addkey(struct chan *chan, char **str, int ch) {
 
             if (success) {
                 chan->authenticated = 1;
-                chan_update_submissions(chan);
-                chan_draw_submissions(chan);
+                chan_sub_update(chan);
+                chan_sub_draw(chan);
             }
 
             wclear(chan->status_win);

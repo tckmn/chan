@@ -23,6 +23,7 @@
 #define URLNBUF_LEN 4
 struct chan {
     CURL *curl;
+    WINDOW *title_win;
     WINDOW *main_win;
     int main_lines;
     int main_cols;
