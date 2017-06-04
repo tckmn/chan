@@ -235,106 +235,117 @@ void chan_sub_draw(struct chan *chan) {
  */
 #define ACTIVE chan->sub.subs[chan->sub.active]
 int chan_sub_key(struct chan *chan, int ch) {
-    switch (ch) {
-        case 'j':
-            if (chan->sub.active < chan->sub.nsubs - 1) {
-                ++chan->sub.active;
-                // check to see if we need to scroll down a page
-                if (chan->sub.active >= chan->main_lines * (chan->sub.page+1)) {
-                    ++chan->sub.page;
-                    chan_sub_refresh(chan);
-                } else {
-                    chan_redraw_submission(chan, chan->sub.active - 1);
-                    chan_redraw_submission(chan, chan->sub.active);
-                }
-                wrefresh(chan->main_win);
-            }
-            return 1;
-
-        case 'k':
-            if (chan->sub.active > 0) {
-                --chan->sub.active;
-                if (chan->sub.active < chan->main_lines * chan->sub.page) {
-                    --chan->sub.page;
-                    chan_sub_refresh(chan);
-                } else {
-                    chan_redraw_submission(chan, chan->sub.active + 1);
-                    chan_redraw_submission(chan, chan->sub.active);
-                }
-                wrefresh(chan->main_win);
-            }
-            return 1;
-
-        case 'l':
-            chan_login_init(chan);
-            return 1;
-
-        case 'o':
-            urlopen(ACTIVE.url);
-            return 1;
-
-        case 'r':
-            chan_sub_update(chan);
-            chan_sub_draw(chan);
-            return 1;
-
-        case 'u':
-            if (chan->authenticated) {
-                char *buf = malloc(100);
-                sprintf(buf, "https://news.ycombinator.com/vote?id=%d&how=u%c&auth=%s",
-                        ACTIVE.id, ACTIVE.voted ? 'n' : 'p', ACTIVE.auth);
-                http(chan->curl, buf, NULL, 0);
-                free(buf);
-
-                ACTIVE.voted = 1 - ACTIVE.voted;
-                ACTIVE.score += ACTIVE.voted ? 1 : -1;
-                chan_redraw_submission(chan, chan->sub.active);
-                wrefresh(chan->main_win);
+    if (ch == chan->keys.sub_down) {
+        if (chan->sub.active < chan->sub.nsubs - 1) {
+            ++chan->sub.active;
+            // check to see if we need to scroll down a page
+            if (chan->sub.active >= chan->main_lines * (chan->sub.page+1)) {
+                ++chan->sub.page;
+                chan_sub_refresh(chan);
             } else {
-                wclear(chan->status_win);
-                mvwaddstr(chan->status_win, 0, 0,
-                        "You must be authenticated to do that.");
-                wrefresh(chan->status_win);
+                chan_redraw_submission(chan, chan->sub.active - 1);
+                chan_redraw_submission(chan, chan->sub.active);
             }
-            return 1;
+            wrefresh(chan->main_win);
+        }
+        return 1;
+    }
 
-        case '\n':
-            chan->com.sub = chan->sub.subs + chan->sub.active;
-            if (!chan->com.sub->coms) chan_com_update(chan);
-            chan_com_draw(chan);
-            return 1;
+    else if (ch == chan->keys.sub_up) {
+        if (chan->sub.active > 0) {
+            --chan->sub.active;
+            if (chan->sub.active < chan->main_lines * chan->sub.page) {
+                --chan->sub.page;
+                chan_sub_refresh(chan);
+            } else {
+                chan_redraw_submission(chan, chan->sub.active + 1);
+                chan_redraw_submission(chan, chan->sub.active);
+            }
+            wrefresh(chan->main_win);
+        }
+        return 1;
+    }
 
-        case 'H':
-            chan->sub.mode = SUB_HOME;
-            chan_sub_update(chan);
-            chan_sub_draw(chan);
-            return 1;
+    else if (ch == chan->keys.sub_login) {
+        chan_login_init(chan);
+        return 1;
+    }
 
-        case 'N':
-            chan->sub.mode = SUB_NEW;
-            chan_sub_update(chan);
-            chan_sub_draw(chan);
-            return 1;
+    else if (ch == chan->keys.sub_open_url) {
+        urlopen(ACTIVE.url);
+        return 1;
+    }
 
-        case 'S':
-            chan->sub.mode = SUB_SHOW;
-            chan_sub_update(chan);
-            chan_sub_draw(chan);
-            return 1;
+    else if (ch == chan->keys.sub_reload) {
+        chan_sub_update(chan);
+        chan_sub_draw(chan);
+        return 1;
+    }
 
-        case 'A':
-            chan->sub.mode = SUB_ASK;
-            chan_sub_update(chan);
-            chan_sub_draw(chan);
-            return 1;
+    else if (ch == chan->keys.sub_upvote) {
+        if (chan->authenticated) {
+            char *buf = malloc(100);
+            sprintf(buf, "https://news.ycombinator.com/vote?id=%d&how=u%c&auth=%s",
+                    ACTIVE.id, ACTIVE.voted ? 'n' : 'p', ACTIVE.auth);
+            http(chan->curl, buf, NULL, 0);
+            free(buf);
 
-        case 'J':
-            chan->sub.mode = SUB_JOBS;
-            chan_sub_update(chan);
-            chan_sub_draw(chan);
-            return 1;
+            ACTIVE.voted = 1 - ACTIVE.voted;
+            ACTIVE.score += ACTIVE.voted ? 1 : -1;
+            chan_redraw_submission(chan, chan->sub.active);
+            wrefresh(chan->main_win);
+        } else {
+            wclear(chan->status_win);
+            mvwaddstr(chan->status_win, 0, 0,
+                    "You must be authenticated to do that.");
+            wrefresh(chan->status_win);
+        }
+        return 1;
+    }
 
-        default:
-            return 0;
+    else if (ch == chan->keys.sub_view_comments) {
+        chan->com.sub = chan->sub.subs + chan->sub.active;
+        if (!chan->com.sub->coms) chan_com_update(chan);
+        chan_com_draw(chan);
+        return 1;
+    }
+
+    else if (ch == chan->keys.sub_home) {
+        chan->sub.mode = SUB_HOME;
+        chan_sub_update(chan);
+        chan_sub_draw(chan);
+        return 1;
+    }
+
+    else if (ch == chan->keys.sub_new) {
+        chan->sub.mode = SUB_NEW;
+        chan_sub_update(chan);
+        chan_sub_draw(chan);
+        return 1;
+    }
+
+    else if (ch == chan->keys.sub_show) {
+        chan->sub.mode = SUB_SHOW;
+        chan_sub_update(chan);
+        chan_sub_draw(chan);
+        return 1;
+    }
+
+    else if (ch == chan->keys.sub_ask) {
+        chan->sub.mode = SUB_ASK;
+        chan_sub_update(chan);
+        chan_sub_draw(chan);
+        return 1;
+    }
+
+    else if (ch == chan->keys.sub_jobs) {
+        chan->sub.mode = SUB_JOBS;
+        chan_sub_update(chan);
+        chan_sub_draw(chan);
+        return 1;
+    }
+
+    else {
+        return 0;
     }
 }

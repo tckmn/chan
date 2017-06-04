@@ -55,6 +55,21 @@ struct chan {
         char urlnbuf[URLNBUF_LEN];
     } com;
 
+    struct {
+        char sub_down;
+        char sub_up;
+        char sub_login;
+        char sub_open_url;
+        char sub_reload;
+        char sub_upvote;
+        char sub_view_comments;
+        char sub_home;
+        char sub_new;
+        char sub_show;
+        char sub_ask;
+        char sub_jobs;
+    } keys;
+
     char *username;
     char *password;
     int authenticated;

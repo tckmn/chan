@@ -6,8 +6,67 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define strnncmp(s1,s2,n) ((n) ? strncmp((s1),(s2),(n)) : strcmp((s1),(s2)))
 #define BUF_SIZE 50
+
+#define NEEDS_VAL do {                                                        \
+    if (!val) {                                                               \
+        fprintf(stderr, "option `%.*s' requires a value\n", key_len, key);    \
+        return 1;                                                             \
+    }                                                                         \
+} while (0)
+
+
+#define PARSE_KEY(ident) do {                                                 \
+    if (!strncmp(key, #ident, key_len)) {                                     \
+        if (!val || strlen(val) != 1) {                                       \
+            fprintf(stderr, "option `%.*s' requires exactly one character\n", \
+                    key_len, key);                                            \
+            return 1;                                                         \
+        }                                                                     \
+        if (overwrite || !chan->keys.ident) {                                 \
+            chan->keys.ident = *val;                                          \
+        }                                                                     \
+        return 0;                                                             \
+    }                                                                         \
+} while (0)
+
+int parse_long_arg(struct chan *chan, char *key, int key_len, char *val, int overwrite) {
+    if (!strncmp(key, "username", key_len)) {
+        NEEDS_VAL;
+        if (overwrite || !chan->username) {
+            free(chan->username);
+            chan->username = malloc(strlen(val) + 1);
+            strcpy(chan->username, val);
+        }
+        return 0;
+    }
+
+    if (!strncmp(key, "password", key_len)) {
+        NEEDS_VAL;
+        if (overwrite || !chan->password) {
+            free(chan->password);
+            chan->password = malloc(strlen(val) + 1);
+            strcpy(chan->password, val);
+        }
+        return 0;
+    }
+
+    PARSE_KEY(sub_down);
+    PARSE_KEY(sub_up);
+    PARSE_KEY(sub_login);
+    PARSE_KEY(sub_open_url);
+    PARSE_KEY(sub_reload);
+    PARSE_KEY(sub_upvote);
+    PARSE_KEY(sub_view_comments);
+    PARSE_KEY(sub_home);
+    PARSE_KEY(sub_new);
+    PARSE_KEY(sub_show);
+    PARSE_KEY(sub_ask);
+    PARSE_KEY(sub_jobs);
+
+    fprintf(stderr, "unknown option `%.*s'\n", key_len, key);
+    return 1;
+}
 
 int config_from_file(struct chan *chan, char *path, int overwrite) {
     FILE *fp = fopen(path, "r");
@@ -42,25 +101,12 @@ int config_from_file(struct chan *chan, char *path, int overwrite) {
             return 1;
         }
 
-        int optlen = eqpos - line;
-        if (!strncmp(line, "username", optlen)) {
-            if (!chan->username || overwrite) {
-                free(chan->username);
-                chan->username = malloc(strlen(eqpos));
-                strcpy(chan->username, eqpos + 1);
-            }
-        } else if (!strncmp(line, "password", optlen)) {
-            if (!chan->password || overwrite) {
-                free(chan->password);
-                chan->password = malloc(strlen(eqpos));
-                strcpy(chan->password, eqpos + 1);
-            }
-        } else {
-            fprintf(stderr, "unknown config option %.*s (at %s:%d)\n",
-                    optlen, line, path, lineno);
+        if (parse_long_arg(chan, line, eqpos - line, eqpos + 1, overwrite)) {
+            fprintf(stderr, "(from config file %s:%d)\n", path, lineno);
             free(line);
             return 1;
         }
+
         free(line);
         line = NULL;
     }
@@ -74,8 +120,6 @@ int chan_config(struct chan *chan, int argc, char **argv) {
     // parse arguments
     for (int i = 1; i < argc; ++i) {
         if (parse_options && argv[i][0] == '-') {
-            char **stroptdest = NULL, *stroptsrc = NULL;
-
             if (argv[i][1] == '-') {
                 if (argv[i][2]) {
                     // --thing, parse as long argument
@@ -89,18 +133,17 @@ int chan_config(struct chan *chan, int argc, char **argv) {
                         continue;
                     }
 
-                    int n = 0;
+                    int res;
                     if ((eqpos = strchr(longarg, '='))) {
-                        n = eqpos - longarg;
-                    }
-                    if (!strnncmp(longarg, "username", n)) {
-                        stroptdest = &chan->username;
-                        stroptsrc = n ? longarg + n + 1 : "";
-                    } else if (!strnncmp(longarg, "password", n)) {
-                        stroptdest = &chan->password;
-                        stroptsrc = n ? longarg + n + 1 : "";
+                        res = parse_long_arg(chan, longarg, eqpos - longarg,
+                                eqpos + 1, 1);
                     } else {
-                        fprintf(stderr, "unknown long option --%s\n", longarg);
+                        res = parse_long_arg(chan, longarg, strlen(longarg),
+                                argv[++i], 1);
+                    }
+
+                    if (res) {
+                        fputs("(from long command line option)\n", stderr);
                         return 1;
                     }
                 } else {
@@ -109,7 +152,15 @@ int chan_config(struct chan *chan, int argc, char **argv) {
                 }
             } else {
                 // -xyz, parse as short option(s)
+                int res = 0, consumed = 0;
+
                 for (char *c = argv[i] + 1; *c; ++c) {
+                    char *val = c + 1;
+                    if (!*val) {
+                        consumed = 1;
+                        val = i < argc - 1 ? argv[i+1] : NULL;
+                    }
+
                     switch (*c) {
                         case 'h':
                             help = 1;
@@ -118,26 +169,24 @@ int chan_config(struct chan *chan, int argc, char **argv) {
                             version = 1;
                             break;
                         case 'u':
-                            stroptdest = &chan->username;
-                            stroptsrc = c + 1;
-                            goto breakloop;
+                            res = parse_long_arg(chan, "username", 8, val, 1);
+                            goto parsed_long;
                         case 'p':
-                            stroptdest = &chan->password;
-                            stroptsrc = c + 1;
-                            goto breakloop;
+                            res = parse_long_arg(chan, "password", 8, val, 1);
+                            goto parsed_long;
                         default:
                             fprintf(stderr, "unknown short option -%c\n", *c);
                             return 1;
                     }
                 }
-                breakloop:;
-            }
+                continue;
 
-            if (stroptdest) {
-                free(*stroptdest);
-                char *ptr = *stroptsrc ? stroptsrc : argv[++i];
-                *stroptdest = malloc(strlen(ptr) + 1);
-                strcpy(*stroptdest, ptr);
+parsed_long:
+                if (res) {
+                    fputs("(from short command line option)\n", stderr);
+                    return 1;
+                }
+                if (consumed) ++i;
             }
         } else {
             // bare argument, parse as config file path
@@ -185,6 +234,20 @@ int chan_config(struct chan *chan, int argc, char **argv) {
     free(chan->username);
     free(chan->password);
     chan->username = chan->password = NULL;
+
+    // defaults...
+    if (!chan->keys.sub_down)          chan->keys.sub_down = 'j';
+    if (!chan->keys.sub_up)            chan->keys.sub_up = 'k';
+    if (!chan->keys.sub_login)         chan->keys.sub_login = 'l';
+    if (!chan->keys.sub_open_url)      chan->keys.sub_open_url = 'o';
+    if (!chan->keys.sub_reload)        chan->keys.sub_reload = 'r';
+    if (!chan->keys.sub_upvote)        chan->keys.sub_upvote = '+';
+    if (!chan->keys.sub_view_comments) chan->keys.sub_view_comments = '\n';
+    if (!chan->keys.sub_home)          chan->keys.sub_home = 'H';
+    if (!chan->keys.sub_new)           chan->keys.sub_new = 'N';
+    if (!chan->keys.sub_show)          chan->keys.sub_show = 'S';
+    if (!chan->keys.sub_ask)           chan->keys.sub_ask = 'A';
+    if (!chan->keys.sub_jobs)          chan->keys.sub_jobs = 'J';
 
     return 0;
 }
