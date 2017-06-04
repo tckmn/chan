@@ -15,6 +15,17 @@
     }                                                                         \
 } while (0)
 
+#define PARSE_STR(dest, optname) do {                                         \
+    if (!strncmp(key, #optname, key_len)) {                                   \
+        NEEDS_VAL;                                                            \
+        if (overwrite || !dest) {                                             \
+            free(dest);                                                       \
+            dest = malloc(strlen(val) + 1);                                   \
+            strcpy(dest, val);                                                \
+        }                                                                     \
+        return 0;                                                             \
+    }                                                                         \
+} while (0)
 
 #define PARSE_KEY(ident) do {                                                 \
     if (!strncmp(key, #ident, key_len)) {                                     \
@@ -38,25 +49,9 @@
 int parse_long_arg(struct chan *chan, char *key, int key_len, char *val, int overwrite) {
     for (char *ch = key; *ch; ++ch) if (*ch == '-') *ch = '_';
 
-    if (!strncmp(key, "username", key_len)) {
-        NEEDS_VAL;
-        if (overwrite || !chan->username) {
-            free(chan->username);
-            chan->username = malloc(strlen(val) + 1);
-            strcpy(chan->username, val);
-        }
-        return 0;
-    }
-
-    if (!strncmp(key, "password", key_len)) {
-        NEEDS_VAL;
-        if (overwrite || !chan->password) {
-            free(chan->password);
-            chan->password = malloc(strlen(val) + 1);
-            strcpy(chan->password, val);
-        }
-        return 0;
-    }
+    PARSE_STR(chan->username, username);
+    PARSE_STR(chan->password, password);
+    PARSE_STR(chan->sub.fmt_str, sub_fmt_str);
 
     PARSE_KEY(sub_down);
     PARSE_KEY(sub_up);
@@ -131,7 +126,6 @@ int config_from_file(struct chan *chan, char *path, int overwrite) {
 int chan_config(struct chan *chan, int argc, char **argv) {
     int used_file = 0, parse_options = 1;
     int help = 0, version = 0;
-    chan->sub.fmt_str = "%s %a %c %t";
 
     // parse arguments
     for (int i = 1; i < argc; ++i) {
@@ -252,6 +246,7 @@ parsed_long:
     chan->username = chan->password = NULL;
 
     // defaults...
+    if (!chan->sub.fmt_str) chan->sub.fmt_str  = "%s %a %c %t";
     if (!chan->keys.sub_down)          chan->keys.sub_down = 'j';
     if (!chan->keys.sub_up)            chan->keys.sub_up = 'k';
     if (!chan->keys.sub_login)         chan->keys.sub_login = 'l';
